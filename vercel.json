@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build -w asknim-web",
+  "outputDirectory": "apps/web/dist",
   "functions": {
     "api/**": {
       "maxDuration": 60

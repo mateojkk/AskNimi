@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
-    "@vercel/node": "^5.4.1",
     "groq-sdk": "^1.6.0",
     "hono": "^4.13.5"
   },

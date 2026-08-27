@@ -1,5 +1,5 @@
 import { handle } from 'hono/vercel'
-import { app } from '../server/app'
+import { app } from '../apps/api/server/app'
 
 export const maxDuration = 60
 

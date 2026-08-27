@@ -48,14 +48,31 @@ asknim/
 
 **Free testing:** Nimiq Pay has a hidden dev menu — long-press the settings button for 10s → switch to **Testnet** → tap **Get free NIM** (110,000 test-NIM per request). Set `NIMIQ_RPC_URL` to a testnet RPC while testing so payment verification matches.
 
-## Deploy to Vercel (two projects)
+## Deploy to Vercel (single serverless project)
 
-The API runs on Vercel Functions (serverless), so the JSON-file store switches to **Upstash Redis** automatically when `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set (free tier at upstash.com).
+One Vercel project serves everything: the static mini app **and** the API as a serverless function (`api/[[...route]].ts` at the repo root, 60s max duration for AI streaming). Same origin → no CORS, no cross-project rewrites.
+
+The API runs serverless, so the JSON-file store switches to **Upstash Redis** automatically when `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set (free tier at upstash.com).
 
 1. **Push this repo to GitHub.**
-2. **API project:** Vercel → Add New → Project → import repo → **Root Directory: `apps/api`** (framework: Other). Add env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `MERCHANT_NIM_ADDRESS`, `NIMIQ_RPC_URL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `FREE_MESSAGES`. Deploy — note the domain (e.g. `asknim-api.vercel.app`).
-3. **Web project:** Add New → Project → same repo → **Root Directory: `apps/web`** (framework: Vite). Before deploying, edit `apps/web/vercel.json` and point the rewrite `destination` at your API domain from step 2 — the browser only ever calls same-origin `/api/*`, no CORS anywhere.
-4. Redeploy web if you changed the rewrite. Open `https://<web-domain>` inside Nimiq Pay via `https://nimpay.app/miniapps/open/<web-domain>`.
+2. Vercel → Add New → Project → import the repo → **Root Directory: repo root** (framework: Other — `vercel.json` handles build + output).
+3. Add env vars:
+   - `GROQ_API_KEY` — free at console.groq.com
+   - `GROQ_MODEL` — `openai/gpt-oss-120b`
+   - `MERCHANT_NIM_ADDRESS` — your Nimiq wallet
+   - `NIMIQ_RPC_URL` — `https://rpc.nimiqwatch.com` (or a testnet RPC while testing)
+   - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` — free Upstash Redis
+   - `FREE_MESSAGES` — `3`
+4. Deploy. Open `https://<your-domain>` inside Nimiq Pay via `https://nimpay.app/miniapps/open/<your-domain>` — or just paste the URL into Mini Apps.
+
+CLI equivalent:
+
+```bash
+npm i -g vercel
+vercel link
+vercel env add GROQ_API_KEY production   # …repeat per variable
+vercel --prod
+```
 
 ## Principles
 
