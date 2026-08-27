@@ -1,0 +1,66 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
+/**
+ * Minimal .env loader — no dependency needed.
+ * Values already present in process.env take precedence.
+ */
+export function loadEnvFile(file = '.env'): void {
+  try {
+    const raw = fs.readFileSync(file, 'utf-8')
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const eq = trimmed.indexOf('=')
+      if (eq === -1) continue
+      const key = trimmed.slice(0, eq).trim()
+      const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '')
+      if (process.env[key] === undefined && value !== '') {
+        process.env[key] = value
+      }
+    }
+  }
+  catch {
+    // No .env file — fine, rely on real environment variables.
+  }
+}
+
+loadEnvFile()
+
+export interface CreditPack {
+  id: string
+  label: string
+  /** Price in Luna (1 NIM = 100_000 Luna) */
+  priceLuna: number
+  /** AI messages granted */
+  credits: number
+}
+
+export const config = {
+  port: Number(process.env.PORT ?? 8787),
+
+  groqApiKey: process.env.GROQ_API_KEY ?? '',
+  groqModel: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
+
+  /** Nimiq JSON-RPC endpoint used to verify incoming payments */
+  nimiqRpcUrl: process.env.NIMIQ_RPC_URL ?? 'https://rpc.nimiqwatch.com',
+
+  /** Your Nimiq wallet address (spaces stripped at load time) */
+  merchantAddress: (process.env.MERCHANT_NIM_ADDRESS ?? '').replace(/\s+/g, ''),
+
+  /** Free AI messages for a brand-new device (onboarding) */
+  freeMessages: Number(process.env.FREE_MESSAGES ?? 3),
+
+  /** Credit packs offered in the paywall */
+  packs: [
+    { id: 'starter', label: '1 NIM', priceLuna: 100_000, credits: 50 },
+    { id: 'value', label: '5 NIM', priceLuna: 500_000, credits: 300 },
+  ] satisfies CreditPack[],
+
+  /** Server-side guardrails */
+  maxMessageChars: 2000,
+  maxHistoryMessages: 12,
+  maxTokens: 1024,
+
+  dataDir: path.resolve(process.env.DATA_DIR ?? 'data'),
+}
