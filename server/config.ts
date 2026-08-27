@@ -40,7 +40,7 @@ export const config = {
   port: Number(process.env.PORT ?? 8787),
 
   groqApiKey: process.env.GROQ_API_KEY ?? '',
-  groqModel: process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile',
+  groqModel: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
 
   /** Nimiq JSON-RPC endpoint used to verify incoming payments */
   nimiqRpcUrl: process.env.NIMIQ_RPC_URL ?? 'https://rpc.nimiqwatch.com',
