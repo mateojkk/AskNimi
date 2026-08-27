@@ -26,15 +26,36 @@ AskNim server (Node + Hono)
 
 **Payment loop:** the app requests a checkout session → the user approves a `sendBasicTransactionWithData` NIM payment in Nimiq Pay (the memo tags the session) → the server independently verifies the transaction on-chain before crediting. The client's word is never trusted.
 
-## Try it
+## Repo layout (npm-workspaces monorepo)
+
+```
+asknim/
+├── apps/
+│   ├── web/     # Vite + React mini app (static build)
+│   └── api/     # Hono API — Node dev server + Vercel Functions entry
+│       ├── api/[[...route]].ts   # Vercel serverless handler
+│       └── server/               # app, config, store, ai, payments
+└── package.json # workspaces + dev scripts
+```
+
+## Run locally
 
 1. `npm install`
-2. Copy `.env.example` → `.env`, set `GROQ_API_KEY` (free at console.groq.com) and your `MERCHANT_NIM_ADDRESS`
-3. `npm run dev:all` — web on :5173, API on :8787
+2. `apps/api/.env` — set `GROQ_API_KEY` (free at console.groq.com) and your `MERCHANT_NIM_ADDRESS`
+3. `npm run dev:all` — web on :5173 (proxies `/api`), API on :8787
 4. Open Nimiq Pay → Mini Apps → enter `http://<your-lan-ip>:5173`
    (outside Nimiq Pay the app runs in a clearly-labeled demo mode)
 
-Production: `npm run build && npm start` — the server serves the built app and the API on one port.
+**Free testing:** Nimiq Pay has a hidden dev menu — long-press the settings button for 10s → switch to **Testnet** → tap **Get free NIM** (110,000 test-NIM per request). Set `NIMIQ_RPC_URL` to a testnet RPC while testing so payment verification matches.
+
+## Deploy to Vercel (two projects)
+
+The API runs on Vercel Functions (serverless), so the JSON-file store switches to **Upstash Redis** automatically when `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` are set (free tier at upstash.com).
+
+1. **Push this repo to GitHub.**
+2. **API project:** Vercel → Add New → Project → import repo → **Root Directory: `apps/api`** (framework: Other). Add env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `MERCHANT_NIM_ADDRESS`, `NIMIQ_RPC_URL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `FREE_MESSAGES`. Deploy — note the domain (e.g. `asknim-api.vercel.app`).
+3. **Web project:** Add New → Project → same repo → **Root Directory: `apps/web`** (framework: Vite). Before deploying, edit `apps/web/vercel.json` and point the rewrite `destination` at your API domain from step 2 — the browser only ever calls same-origin `/api/*`, no CORS anywhere.
+4. Redeploy web if you changed the rewrite. Open `https://<web-domain>` inside Nimiq Pay via `https://nimpay.app/miniapps/open/<web-domain>`.
 
 ## Principles
 

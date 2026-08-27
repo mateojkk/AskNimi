@@ -1,11 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Minimal .env loader — no dependency needed.
- * Values already present in process.env take precedence.
+ * Reads the .env next to this package (apps/api/.env) so the server
+ * works regardless of the process cwd. Values already present in
+ * process.env take precedence.
  */
-export function loadEnvFile(file = '.env'): void {
+export function loadEnvFile(): void {
+  const file = fileURLToPath(new URL('../.env', import.meta.url))
   try {
     const raw = fs.readFileSync(file, 'utf-8')
     for (const line of raw.split('\n')) {
@@ -62,5 +66,10 @@ export const config = {
   maxHistoryMessages: 12,
   maxTokens: 1024,
 
+  /** Upstash Redis REST credentials (enables the serverless store) */
+  upstashUrl: process.env.UPSTASH_REDIS_REST_URL ?? '',
+  upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
+
   dataDir: path.resolve(process.env.DATA_DIR ?? 'data'),
+  dataFile: path.resolve(process.env.DATA_DIR ?? 'data', 'db.json'),
 }

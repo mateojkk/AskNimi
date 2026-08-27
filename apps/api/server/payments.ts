@@ -1,4 +1,4 @@
-import { config } from './config.ts'
+import { config } from './config'
 
 /**
  * Verifies a NIM payment on-chain via the Nimiq JSON-RPC API.

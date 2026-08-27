@@ -1,5 +1,5 @@
 import type { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
-import { config } from './config.ts'
+import { config } from './config'
 
 export const SYSTEM_PROMPT = `You are AskNim, a friendly AI assistant that lives inside Nimiq Pay, the Nimiq mobile wallet.
 You help people with everyday questions: writing, translating, summarizing, explaining concepts (including crypto/Nimiq topics), and brainstorming.

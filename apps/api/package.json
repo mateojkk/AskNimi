@@ -1,0 +1,22 @@
+{
+  "name": "asknim-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server/dev.ts",
+    "start": "tsx server/dev.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@vercel/node": "^5.4.1",
+    "groq-sdk": "^1.6.0",
+    "hono": "^4.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.2"
+  }
+}
