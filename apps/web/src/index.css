@@ -28,6 +28,7 @@ body {
     radial-gradient(1200px 500px at 50% -10%, rgba(255, 255, 255, 0.06), transparent 60%),
     var(--bg-0);
   color: var(--text);
+  font-weight: 300;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
@@ -60,7 +61,7 @@ input, button { font-family: inherit; }
   animation: orb 6s linear infinite;
 }
 @keyframes orb { to { transform: rotate(360deg); } }
-.brand-name { font-size: 17px; font-weight: 800; letter-spacing: -0.03em; }
+.brand-name { font-size: 17px; font-weight: 500; letter-spacing: -0.03em; }
 .brand-name em {
   font-style: normal;
   background: linear-gradient(90deg, #ffffff, #8f8f8f);
@@ -70,17 +71,17 @@ input, button { font-family: inherit; }
 .balance { display: flex; gap: 6px; flex-shrink: 0; }
 .chip {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 700; padding: 7px 11px;
+  font-size: 12px; font-weight: 500; padding: 7px 11px;
   border-radius: 999px; border: 1px solid var(--line);
   background: var(--card); white-space: nowrap;
 }
 .chip-free { color: var(--text); border-color: var(--line-strong); background: var(--card); }
 .chip-credit { color: var(--text); border-color: var(--line-strong); background: var(--card-strong); }
 .chip-btn { color: var(--text); background: var(--card-strong); }
-.chip-addr { color: var(--text-2); font-weight: 600; }
+.chip-addr { color: var(--text-2); font-weight: 500; }
 
 .demo-banner {
-  padding: 9px 16px; font-size: 12px; font-weight: 600; text-align: center;
+  padding: 9px 16px; font-size: 12px; font-weight: 500; text-align: center;
   color: var(--text-2); background: var(--card);
   border-bottom: 1px solid var(--line);
 }
@@ -154,14 +155,14 @@ input, button { font-family: inherit; }
   content: ''; position: absolute; inset: 18px; border-radius: 50%;
   background: var(--bg-0); opacity: 0.25;
 }
-.welcome h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 10px; }
+.welcome h1 { font-size: 26px; font-weight: 500; letter-spacing: -0.03em; margin-bottom: 10px; }
 .welcome h1 em {
   font-style: normal;
   background: linear-gradient(90deg, #ffffff, #8f8f8f);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .welcome p { color: var(--text-2); font-size: 14.5px; line-height: 1.6; max-width: 32ch; margin: 0 auto 26px; }
-.welcome p strong { color: var(--text); font-weight: 800; }
+.welcome p strong { color: var(--text); font-weight: 500; }
 
 .presets {
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
@@ -174,7 +175,7 @@ input, button { font-family: inherit; }
 }
 .preset:hover { border-color: var(--line-strong); background: var(--card-strong); }
 .preset:active { transform: scale(0.97); border-color: var(--accent); }
-.preset-title { font-size: 14px; font-weight: 600; letter-spacing: 0.01em; display: block; text-align: center; }
+.preset-title { font-size: 14px; font-weight: 500; letter-spacing: 0.01em; display: block; text-align: center; }
 
 /* ── composer ── */
 .composer {
@@ -191,7 +192,7 @@ input, button { font-family: inherit; }
 .composer-input:focus-within { border-color: var(--line-strong); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08); }
 .composer-input input {
   flex: 1; background: none; border: none; outline: none;
-  color: var(--text); font-size: 15px; padding: 13px 0; min-width: 0;
+  color: var(--text); font-size: 15px; font-weight: inherit; padding: 13px 0; min-width: 0;
 }
 .composer-input input::placeholder { color: var(--text-3); }
 .send {
@@ -220,7 +221,7 @@ input, button { font-family: inherit; }
 }
 @keyframes slide-up { from { transform: translateY(60%); } }
 .sheet-handle { width: 42px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 20px; }
-.sheet h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+.sheet h2 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 8px; }
 .sheet-sub { color: var(--text-2); font-size: 13.5px; line-height: 1.55; margin-bottom: 22px; }
 .packs { display: flex; gap: 10px; margin-bottom: 16px; }
 .pack {
@@ -232,29 +233,29 @@ input, button { font-family: inherit; }
 .pack-best { border-color: var(--accent); background: rgba(255, 255, 255, 0.09); }
 .pack-badge {
   position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
-  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
   padding: 4px 10px; border-radius: 999px;
   background: #f5f5f5; color: #0a0a0a;
   white-space: nowrap;
 }
-.pack-price { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
-.pack-unit { font-size: 12px; color: var(--text-3); font-weight: 600; }
-.pack-credits { display: block; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--text); }
+.pack-price { display: block; font-size: 24px; font-weight: 500; letter-spacing: -0.02em; }
+.pack-unit { font-size: 12px; color: var(--text-3); font-weight: 500; }
+.pack-credits { display: block; margin-top: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
 .sheet-note { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-3); }
-.sheet-status { padding: 44px 12px; font-size: 16px; font-weight: 600; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.sheet-status { padding: 44px 12px; font-size: 16px; font-weight: 500; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .sheet-ok { color: var(--text); }
 .sheet-fail { color: var(--text); }
-.sheet-fail small { color: var(--text-2); font-size: 12.5px; font-weight: 500; line-height: 1.5; }
+.sheet-fail small { color: var(--text-2); font-size: 12.5px; font-weight: 300; line-height: 1.5; }
 .sheet-fail button {
   margin-top: 10px; padding: 10px 28px; border-radius: 999px;
-  background: var(--card-strong); border: 1px solid var(--line-strong); font-weight: 700;
+  background: var(--card-strong); border: 1px solid var(--line-strong); font-weight: 500;
 }
 
 .topup-float {
   position: fixed; bottom: calc(92px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
   padding: 12px 24px; border-radius: 999px;
   background: #f5f5f5; color: #0a0a0a;
-  font-weight: 700; font-size: 14px;
+  font-weight: 500; font-size: 14px;
   box-shadow: 0 8px 30px var(--accent-glow);
   animation: rise 0.25s ease both; z-index: 40;
 }
