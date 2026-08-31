@@ -2,11 +2,8 @@
 const STRINGS = {
   en: {
     tagline: 'Your pocket AI. Pennies per question.',
-    presetTranslate: 'Translate',
-    presetSummarize: 'Summarize',
     presetExplain: 'Explain',
-    presetWrite: 'Write',
-    presetBrainstorm: 'Brainstorm',
+    presetExplore: 'Explore',
     freeLeft: '{n} free left',
     credits: '{n} credits',
     topUp: 'Top up',
@@ -27,11 +24,8 @@ const STRINGS = {
   },
   de: {
     tagline: 'Deine KI für die Hosentasche. Pfennige pro Frage.',
-    presetTranslate: 'Übersetzen',
-    presetSummarize: 'Zusammenfassen',
     presetExplain: 'Erklären',
-    presetWrite: 'Schreiben',
-    presetBrainstorm: 'Ideen',
+    presetExplore: 'Entdecken',
     freeLeft: '{n} gratis übrig',
     credits: '{n} Credits',
     topUp: 'Aufladen',
@@ -52,11 +46,8 @@ const STRINGS = {
   },
   es: {
     tagline: 'Tu IA de bolsillo. Centavos por pregunta.',
-    presetTranslate: 'Traducir',
-    presetSummarize: 'Resumir',
     presetExplain: 'Explicar',
-    presetWrite: 'Escribir',
-    presetBrainstorm: 'Ideas',
+    presetExplore: 'Explorar',
     freeLeft: '{n} gratis restantes',
     credits: '{n} créditos',
     topUp: 'Recargar',
@@ -91,9 +82,6 @@ export function t(lang: string, key: StringKey, vars?: Record<string, string | n
 }
 
 export const PRESETS: { id: string, key: StringKey, sample: string }[] = [
-  { id: 'translate', key: 'presetTranslate', sample: 'Where is the train station? Translate to Spanish.' },
-  { id: 'summarize', key: 'presetSummarize', sample: 'Condense any text to bullets' },
-  { id: 'explain', key: 'presetExplain', sample: 'What is staking?' },
-  { id: 'write', key: 'presetWrite', sample: 'A friendly reply to a landlord' },
-  { id: 'brainstorm', key: 'presetBrainstorm', sample: 'Names for my coffee shop' },
+  { id: 'explain', key: 'presetExplain', sample: 'What is staking, and how can I earn rewards with NIM?' },
+  { id: 'explore', key: 'presetExplore', sample: 'What can I do with Nimiq and NIM?' },
 ]
