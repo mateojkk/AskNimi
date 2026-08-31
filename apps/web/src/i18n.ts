@@ -90,10 +90,10 @@ export function t(lang: string, key: StringKey, vars?: Record<string, string | n
   return out
 }
 
-export const PRESET_KEYS: { id: string, key: StringKey, sample: string }[] = [
-  { id: 'translate', key: 'presetTranslate', sample: '"Where is the train station?" → Spanish' },
-  { id: 'summarize', key: 'presetSummarize', sample: 'Paste any text to condense' },
-  { id: 'explain', key: 'presetExplain', sample: 'What is staking?' },
-  { id: 'write', key: 'presetWrite', sample: 'A friendly reply to a landlord' },
-  { id: 'brainstorm', key: 'presetBrainstorm', sample: 'Names for my coffee shop' },
+export const PRESETS: { id: string, key: StringKey, icon: string, sample: string }[] = [
+  { id: 'translate', key: 'presetTranslate', icon: '🌍', sample: '"Where is the train station?" → Spanish' },
+  { id: 'summarize', key: 'presetSummarize', icon: '📝', sample: 'Condense any text to bullets' },
+  { id: 'explain', key: 'presetExplain', icon: '💡', sample: 'What is staking?' },
+  { id: 'write', key: 'presetWrite', icon: '✍️', sample: 'A friendly reply to a landlord' },
+  { id: 'brainstorm', key: 'presetBrainstorm', icon: '🧠', sample: 'Names for my coffee shop' },
 ]

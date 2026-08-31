@@ -9,7 +9,7 @@ import {
   type SessionState,
 } from './lib/api.ts'
 import { getDeviceId, getLocalDeviceId, insideNimiqPay, listAccounts, payLanguage, payWithMemo } from './lib/nimiq.ts'
-import { PRESET_KEYS, t } from './i18n.ts'
+import { PRESETS, t } from './i18n.ts'
 import { Paywall } from './components/Paywall.tsx'
 
 export default function App() {
@@ -26,7 +26,6 @@ export default function App() {
   const [address, setAddress] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // ── bootstrap ──────────────────────────────────────────────────
   useEffect(() => {
     ;(async () => {
       setLang(payLanguage())
@@ -42,7 +41,6 @@ export default function App() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streaming])
 
-  // ── send / stream ──────────────────────────────────────────────
   const send = useCallback(async (text: string, preset?: string) => {
     if (!deviceId || !session || busy || !text.trim()) return
     setError(null)
@@ -57,7 +55,6 @@ export default function App() {
         setStreaming(s => s + delta)
       })
       setMessages(prev => [...prev, { role: 'assistant', content: '' }])
-      // finalize: replace placeholder with the full streamed text
       setStreaming((finalText) => {
         setMessages(prev => [...prev.slice(0, -1), { role: 'assistant', content: finalText.trim() }])
         return ''
@@ -67,7 +64,7 @@ export default function App() {
     catch (err) {
       const e = err as Error & { code?: string }
       if (e.code === 'NEEDS_TOPUP') {
-        setMessages(messages) // roll back the optimistic user message
+        setMessages(messages)
         setShowPaywall(true)
       }
       else {
@@ -81,7 +78,6 @@ export default function App() {
     }
   }, [deviceId, session, busy, messages, lang])
 
-  // ── wallet connect (optional identity display) ─────────────────
   const connect = useCallback(async () => {
     try {
       const [addr] = await listAccounts()
@@ -92,7 +88,6 @@ export default function App() {
     }
   }, [lang])
 
-  // ── payment flow ───────────────────────────────────────────────
   const buyPack = useCallback(async (packId: string) => {
     if (!deviceId || !session) return
     const checkout: CheckoutSession = await createCheckout(deviceId, packId)
@@ -105,36 +100,45 @@ export default function App() {
   const freeLeft = session?.freeRemaining ?? 0
   const credits = session?.credits ?? 0
   const hasBalance = freeLeft > 0 || credits > 0
+  const empty = messages.length === 0 && !streaming && !busy
 
   return (
     <div className="app">
       <header className="header">
         <div className="brand">
-          <span className="brand-mark">asknim</span>
-          <span className="brand-tag">{t(lang, 'tagline')}</span>
+          <div className="brand-orb" />
+          <div>
+            <div className="brand-name">ask<em>nim</em></div>
+            <div className="brand-sub">{t(lang, 'tagline')}</div>
+          </div>
         </div>
         <div className="balance">
-          {freeLeft > 0 && <span className="pill pill-free">{t(lang, 'freeLeft', { n: freeLeft })}</span>}
-          {credits > 0 && <span className="pill pill-credit">{t(lang, 'credits', { n: credits })}</span>}
+          {freeLeft > 0 && <span className="chip chip-free">✦ {t(lang, 'freeLeft', { n: freeLeft })}</span>}
+          {credits > 0 && <span className="chip chip-credit">⚡ {t(lang, 'credits', { n: credits })}</span>}
           {insidePay && !address && (
-            <button className="pill pill-action" onClick={connect}>{t(lang, 'connect')}</button>
+            <button className="chip chip-btn" onClick={connect}>{t(lang, 'connect')}</button>
           )}
-          {address && <span className="pill pill-addr">{address.slice(0, 6)}…{address.slice(-4)}</span>}
+          {address && <span className="chip chip-addr">{address.slice(0, 6)}…{address.slice(-4)}</span>}
         </div>
       </header>
 
-      {insidePay === false && <div className="demo-banner">{t(lang, 'demoMode')}</div>}
+      {insidePay === false && <div className="demo-banner">🧪 {t(lang, 'demoMode')}</div>}
 
       <main className="chat">
-        {messages.length === 0 && !streaming && (
+        {empty && (
           <div className="welcome">
-            <div className="welcome-logo">asknim</div>
-            <h1>{t(lang, 'welcomeTitle')}</h1>
-            <p>{t(lang, 'welcomeBody', { n: 3 })}</p>
+            <div className="hero-orb" />
+            <h1>ask <em>anything</em></h1>
+            <p>
+              Your pocket AI, inside Nimiq Pay. <strong>{freeLeft || 3} answers are free</strong> —
+              {' '}then top up with a feeless NIM tap.
+            </p>
             <div className="presets">
-              {PRESET_KEYS.map(p => (
+              {PRESETS.map(p => (
                 <button key={p.id} className="preset" onClick={() => send(p.sample, p.id)}>
-                  {t(lang, p.key)}
+                  <span className="preset-icon">{p.icon}</span>
+                  <span className="preset-title">{t(lang, p.key)}</span>
+                  <span className="preset-sample">{p.sample}</span>
                 </button>
               ))}
             </div>
@@ -143,14 +147,18 @@ export default function App() {
 
         {messages.map((m, i) => (
           <div key={i} className={`msg msg-${m.role}`}>
+            {m.role === 'assistant' && <div className="avatar" />}
             <div className="bubble">{m.content}</div>
           </div>
         ))}
 
-        {(streaming || (busy && !streaming)) && (
+        {(streaming || busy) && (
           <div className="msg msg-assistant">
-            <div className={`bubble${streaming ? '' : ' bubble-thinking'}`}>
-              {streaming || <span className="dots"><i /><i /><i /></span>}
+            <div className="avatar" />
+            <div className="bubble">
+              {streaming
+                ? <>{streaming}<span className="caret" /></>
+                : <span className="thinking"><i /><i /><i /></span>}
             </div>
           </div>
         )}
@@ -160,21 +168,23 @@ export default function App() {
       {error && <div className="error-bar" onClick={() => setError(null)}>{error}</div>}
 
       <footer className="composer">
-        <input
-          value={input}
-          placeholder={t(lang, 'placeholder')}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && send(input)}
-          disabled={busy || !deviceId}
-        />
-        <button
-          className="send"
-          onClick={() => send(input)}
-          disabled={busy || !input.trim() || !deviceId}
-          aria-label="Send"
-        >
-          ➤
-        </button>
+        <div className="composer-input">
+          <input
+            value={input}
+            placeholder={t(lang, 'placeholder')}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && send(input)}
+            disabled={busy || !deviceId}
+          />
+          <button
+            className="send"
+            onClick={() => send(input)}
+            disabled={busy || !input.trim() || !deviceId}
+            aria-label="Send"
+          >
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </button>
+        </div>
       </footer>
 
       {showPaywall && session && (
@@ -189,7 +199,7 @@ export default function App() {
 
       {!hasBalance && session && !showPaywall && messages.length > 0 && (
         <button className="topup-float" onClick={() => setShowPaywall(true)}>
-          {t(lang, 'topUp')}
+          ⚡ {t(lang, 'topUp')}
         </button>
       )}
     </div>
