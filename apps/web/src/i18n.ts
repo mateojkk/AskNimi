@@ -12,7 +12,7 @@ const STRINGS = {
     topUp: 'Top up',
     placeholder: 'Ask anything…',
     welcomeTitle: 'Meet AskNim',
-    welcomeBody: 'Ask anything — {n} answers are on the house. After that, add credits with a feeless NIM payment.',
+    welcomeBody: 'Ask anything. {n} answers are on the house. After that, add credits with a feeless NIM payment.',
     needCredits: 'You are out of credits',
     needCreditsBody: 'Grab more answers with a feeless NIM payment. Credits never expire.',
     payWithNimiq: 'Pay with Nimiq Pay',
@@ -21,7 +21,7 @@ const STRINGS = {
     paymentSuccess: 'Credits added!',
     paymentFailed: 'Payment verification failed',
     openInPay: 'Open inside Nimiq Pay',
-    demoMode: 'Demo mode (outside Nimiq Pay) — payments disabled',
+    demoMode: 'Demo mode (outside Nimiq Pay). Payments disabled',
     connect: 'Connect wallet',
     errorGeneric: 'Something went wrong. Try again.',
   },
@@ -37,7 +37,7 @@ const STRINGS = {
     topUp: 'Aufladen',
     placeholder: 'Frag mich etwas…',
     welcomeTitle: 'AskNim kennenlernen',
-    welcomeBody: 'Frag alles — {n} Antworten gehen auf uns. Danach Credits mit gebührenfreier NIM-Zahlung.',
+    welcomeBody: 'Frag alles. {n} Antworten gehen auf uns. Danach Credits mit gebührenfreier NIM-Zahlung.',
     needCredits: 'Keine Credits mehr',
     needCreditsBody: 'Hol dir mehr Antworten mit einer gebührenfreien NIM-Zahlung. Credits verfallen nie.',
     payWithNimiq: 'Mit Nimiq Pay zahlen',
@@ -62,7 +62,7 @@ const STRINGS = {
     topUp: 'Recargar',
     placeholder: 'Pregunta lo que quieras…',
     welcomeTitle: 'Conoce a AskNim',
-    welcomeBody: 'Pregunta todo — {n} respuestas van por nuestra cuenta. Después, añade créditos con un pago NIM sin comisiones.',
+    welcomeBody: 'Pregunta todo. {n} respuestas van por nuestra cuenta. Después, añade créditos con un pago NIM sin comisiones.',
     needCredits: 'Te quedaste sin créditos',
     needCreditsBody: 'Consigue más respuestas con un pago NIM sin comisiones. Los créditos nunca caducan.',
     payWithNimiq: 'Pagar con Nimiq Pay',
@@ -90,10 +90,10 @@ export function t(lang: string, key: StringKey, vars?: Record<string, string | n
   return out
 }
 
-export const PRESETS: { id: string, key: StringKey, icon: string, sample: string }[] = [
-  { id: 'translate', key: 'presetTranslate', icon: '🌍', sample: '"Where is the train station?" → Spanish' },
-  { id: 'summarize', key: 'presetSummarize', icon: '📝', sample: 'Condense any text to bullets' },
-  { id: 'explain', key: 'presetExplain', icon: '💡', sample: 'What is staking?' },
-  { id: 'write', key: 'presetWrite', icon: '✍️', sample: 'A friendly reply to a landlord' },
-  { id: 'brainstorm', key: 'presetBrainstorm', icon: '🧠', sample: 'Names for my coffee shop' },
+export const PRESETS: { id: string, key: StringKey, sample: string }[] = [
+  { id: 'translate', key: 'presetTranslate', sample: 'Where is the train station? Translate to Spanish.' },
+  { id: 'summarize', key: 'presetSummarize', sample: 'Condense any text to bullets' },
+  { id: 'explain', key: 'presetExplain', sample: 'What is staking?' },
+  { id: 'write', key: 'presetWrite', sample: 'A friendly reply to a landlord' },
+  { id: 'brainstorm', key: 'presetBrainstorm', sample: 'Names for my coffee shop' },
 ]

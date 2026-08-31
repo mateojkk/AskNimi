@@ -113,8 +113,8 @@ export default function App() {
           </div>
         </div>
         <div className="balance">
-          {freeLeft > 0 && <span className="chip chip-free">✦ {t(lang, 'freeLeft', { n: freeLeft })}</span>}
-          {credits > 0 && <span className="chip chip-credit">⚡ {t(lang, 'credits', { n: credits })}</span>}
+          {freeLeft > 0 && <span className="chip chip-free">{t(lang, 'freeLeft', { n: freeLeft })}</span>}
+          {credits > 0 && <span className="chip chip-credit">{t(lang, 'credits', { n: credits })}</span>}
           {insidePay && !address && (
             <button className="chip chip-btn" onClick={connect}>{t(lang, 'connect')}</button>
           )}
@@ -122,7 +122,7 @@ export default function App() {
         </div>
       </header>
 
-      {insidePay === false && <div className="demo-banner">🧪 {t(lang, 'demoMode')}</div>}
+      {insidePay === false && <div className="demo-banner">{t(lang, 'demoMode')}</div>}
 
       <main className="chat">
         {empty && (
@@ -130,15 +130,12 @@ export default function App() {
             <div className="hero-orb" />
             <h1>ask <em>anything</em></h1>
             <p>
-              Your pocket AI, inside Nimiq Pay. <strong>{freeLeft || 3} answers are free</strong> —
-              {' '}then top up with a feeless NIM tap.
+              Your pocket AI, inside Nimiq Pay. <strong>{freeLeft || 3} answers are free</strong>. Top up with a feeless NIM tap.
             </p>
             <div className="presets">
               {PRESETS.map(p => (
                 <button key={p.id} className="preset" onClick={() => send(p.sample, p.id)}>
-                  <span className="preset-icon">{p.icon}</span>
                   <span className="preset-title">{t(lang, p.key)}</span>
-                  <span className="preset-sample">{p.sample}</span>
                 </button>
               ))}
             </div>
@@ -199,7 +196,7 @@ export default function App() {
 
       {!hasBalance && session && !showPaywall && messages.length > 0 && (
         <button className="topup-float" onClick={() => setShowPaywall(true)}>
-          ⚡ {t(lang, 'topUp')}
+          {t(lang, 'topUp')}
         </button>
       )}
     </div>

@@ -168,15 +168,13 @@ input, button { font-family: inherit; }
   text-align: left;
 }
 .preset {
-  padding: 13px 14px; border-radius: 16px;
+  padding: 16px 14px; border-radius: 16px;
   background: var(--card); border: 1px solid var(--line);
   transition: border-color 0.15s, background 0.15s, transform 0.1s;
 }
 .preset:hover { border-color: var(--line-strong); background: var(--card-strong); }
 .preset:active { transform: scale(0.97); border-color: var(--accent); }
-.preset-icon { font-size: 18px; display: block; margin-bottom: 6px; }
-.preset-title { font-size: 14px; font-weight: 700; display: block; margin-bottom: 2px; }
-.preset-sample { font-size: 11.5px; color: var(--text-3); display: block; line-height: 1.35; }
+.preset-title { font-size: 14px; font-weight: 600; letter-spacing: 0.01em; display: block; text-align: center; }
 
 /* ── composer ── */
 .composer {

@@ -55,11 +55,11 @@ export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
               ))}
             </div>
             <div className="sheet-note">
-              <span>⚡</span> {label('payWithNimiq')} · feeless · instant
+              {label('payWithNimiq')} · feeless · instant
             </div>
           </>
         )}
-        {phase === 'waiting' && <div className="sheet-status">⏳ {label('waitingPayment')}</div>}
+        {phase === 'waiting' && <div className="sheet-status">{label('waitingPayment')}</div>}
         {phase === 'done' && <div className="sheet-status sheet-ok">✓ {label('paymentSuccess')}</div>}
         {phase === 'failed' && (
           <div className="sheet-status sheet-fail">
