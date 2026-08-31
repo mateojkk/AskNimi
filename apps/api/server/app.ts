@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { config } from './config'
-import { readDb, writeDb, type DB, type DeviceRecord } from './store'
+import { readDb, writeDb, storeMode, type DB, type DeviceRecord } from './store'
 import { streamChat, type ChatTurn } from './ai'
 import { verifyPayment } from './payments'
 
@@ -188,4 +188,9 @@ app.post('/api/chat', async (c) => {
   })
 })
 
-app.get('/api/health', c => c.json({ ok: true, aiConfigured: Boolean(config.groqApiKey) }))
+app.get('/api/health', c => c.json({
+  ok: true,
+  aiConfigured: Boolean(config.groqApiKey),
+  store: storeMode(),
+  merchantConfigured: Boolean(config.merchantAddress),
+}))

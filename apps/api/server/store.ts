@@ -34,6 +34,12 @@ const emptyDb = (): DB => ({ devices: {}, payments: {}, usedTxHashes: {} })
 const DB_KEY = 'asknim:db'
 const remote = () => Boolean(config.upstashUrl && config.upstashToken)
 
+/** Which persistence backend is active — surfaced via /api/health so a
+ *  misconfigured deployment is visible immediately. */
+export function storeMode(): 'redis' | 'filesystem' {
+  return remote() ? 'redis' : 'filesystem'
+}
+
 /**
  * Dual-backend data store:
  *  - Local development: a JSON file (atomic tmp+rename writes)
@@ -67,18 +73,37 @@ export async function readDb(): Promise<DB> {
   }
 }
 
-export async function writeDb(db: DB): Promise<void> {
+export async function writeDb(db: DB): Promise<boolean> {
   if (remote()) {
-    await fetch(`${config.upstashUrl}/set/${encodeURIComponent(DB_KEY)}`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${config.upstashToken}` },
-      body: JSON.stringify(db),
-      signal: AbortSignal.timeout(8000),
-    })
-    return
+    try {
+      const res = await fetch(`${config.upstashUrl}/set/${encodeURIComponent(DB_KEY)}`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${config.upstashToken}` },
+        body: JSON.stringify(db),
+        signal: AbortSignal.timeout(8000),
+      })
+      if (!res.ok) throw new Error(`upstash responded ${res.status}`)
+      return true
+    }
+    catch (err) {
+      // Never fail the API because persistence failed: the request still
+      // works on the in-memory copy of this warm instance. Log loudly —
+      // credits/state will not survive to the next cold start.
+      console.error('[store] remote write failed (state stays in-memory):', err)
+      return false
+    }
   }
-  fs.mkdirSync(config.dataDir, { recursive: true })
-  const tmp = `${config.dataFile}.tmp`
-  fs.writeFileSync(tmp, JSON.stringify(db, null, 2))
-  fs.renameSync(tmp, config.dataFile)
+  // Filesystem backend: fine locally, but the serverless filesystem is
+  // read-only, so degrade to in-memory instead of throwing a 500.
+  try {
+    fs.mkdirSync(config.dataDir, { recursive: true })
+    const tmp = `${config.dataFile}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(db, null, 2))
+    fs.renameSync(tmp, config.dataFile)
+    return true
+  }
+  catch (err) {
+    console.warn('[store] filesystem write failed (serverless? using memory):', err instanceof Error ? err.message : err)
+    return false
+  }
 }
