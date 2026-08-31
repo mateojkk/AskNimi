@@ -31,10 +31,27 @@ export default function App() {
       setLang(payLanguage())
       const inPay = await insideNimiqPay()
       setInsidePay(inPay)
-      const id = inPay ? await getDeviceId() : getLocalDeviceId()
+      let id: string
+      if (inPay) {
+        try {
+          id = await getDeviceId()
+        }
+        catch (err) {
+          // Identifier prompt denied or provider hiccup: keep the app usable
+          // with a local id (metering still works, just not cross-device).
+          console.warn('[asknim] device identifier unavailable, using local id', err)
+          id = getLocalDeviceId()
+        }
+      }
+      else {
+        id = getLocalDeviceId()
+      }
       setDeviceId(id)
       setSession(await startSession(id))
-    })().catch(err => setError(String(err)))
+    })().catch((err) => {
+      console.error('[asknim] init failed', err)
+      setError(t(lang, 'errorGeneric'))
+    })
   }, [])
 
   useEffect(() => {
@@ -68,6 +85,7 @@ export default function App() {
         setShowPaywall(true)
       }
       else {
+        console.error('[asknim] chat failed', err)
         setError(e.message || t(lang, 'errorGeneric'))
         setMessages(messages)
       }
