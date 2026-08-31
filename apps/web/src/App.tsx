@@ -124,7 +124,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="brand">
-          <div className="brand-orb" />
+          <img src="/logo.png" alt="AskNim" className="brand-logo" />
           <div>
             <div className="brand-name">ask<em>nim</em></div>
             <div className="brand-sub">{t(lang, 'tagline')}</div>
@@ -145,7 +145,7 @@ export default function App() {
       <main className="chat">
         {empty && (
           <div className="welcome">
-            <div className="hero-orb" />
+            <img src="/logo.png" alt="" className="hero-logo" />
             <h1>ask <em>anything</em></h1>
             <p>
               Your pocket AI, inside Nimiq Pay. <strong>{freeLeft || 3} answers are free</strong>. Top up with a feeless NIM tap.

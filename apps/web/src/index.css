@@ -54,13 +54,10 @@ input, button { font-family: inherit; }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.brand-orb {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  background: radial-gradient(circle at 35% 30%, #ffffff, #8a8a8a 55%, #2e2e2e);
-  box-shadow: 0 0 18px var(--accent-glow);
-  animation: orb 6s linear infinite;
+.brand-logo {
+  width: 30px; height: 30px; flex-shrink: 0;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
 }
-@keyframes orb { to { transform: rotate(360deg); } }
 .brand-name { font-size: 17px; font-weight: 500; letter-spacing: -0.03em; }
 .brand-name em {
   font-style: normal;
@@ -144,16 +141,14 @@ input, button { font-family: inherit; }
   margin: auto 0; text-align: center; padding: 16px 6px;
   animation: rise 0.4s ease both;
 }
-.hero-orb {
-  width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 22px;
-  background: radial-gradient(circle at 35% 30%, #ffffff, #7a7a7a 55%, #1f1f1f);
-  box-shadow: 0 0 60px var(--accent-glow);
-  animation: orb 8s linear infinite;
-  position: relative;
+.hero-logo {
+  display: block; width: 84px; height: 84px; margin: 0 auto 22px;
+  filter: drop-shadow(0 0 40px var(--accent-glow));
+  animation: pulse 3.2s ease-in-out infinite;
 }
-.hero-orb::after {
-  content: ''; position: absolute; inset: 18px; border-radius: 50%;
-  background: var(--bg-0); opacity: 0.25;
+@keyframes pulse {
+  0%, 100% { filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.12)); }
+  50% { filter: drop-shadow(0 0 48px rgba(255, 255, 255, 0.28)); }
 }
 .welcome h1 { font-size: 26px; font-weight: 500; letter-spacing: -0.03em; margin-bottom: 10px; }
 .welcome h1 em {
