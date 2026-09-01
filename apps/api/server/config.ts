@@ -9,7 +9,16 @@ import { fileURLToPath } from 'node:url'
  * process.env take precedence.
  */
 export function loadEnvFile(): void {
-  const file = fileURLToPath(new URL('../.env', import.meta.url))
+  let file: string
+  try {
+    file = fileURLToPath(new URL('../.env', import.meta.url))
+  }
+  catch {
+    // Bundled to CJS (e.g. the Vercel serverless build) where
+    // import.meta.url does not exist. There, configuration comes from
+    // real environment variables — nothing to load from a file.
+    return
+  }
   try {
     const raw = fs.readFileSync(file, 'utf-8')
     for (const line of raw.split('\n')) {
