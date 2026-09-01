@@ -4602,7 +4602,8 @@ function checkTx(tx, expected) {
   if (!Number.isFinite(value) || value < expected.priceLuna) {
     return `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.`;
   }
-  const data = decodeData(tx.recipientData ?? tx.data ?? tx.extraData);
+  const memoRaw = [tx.recipientData, tx.data, tx.extraData, tx.senderData].find((v) => typeof v === "string" && v.length > 0) ?? "";
+  const data = decodeData(memoRaw);
   if (data !== expected.memo) {
     return "Payment memo does not match the checkout session.";
   }

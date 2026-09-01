@@ -42,6 +42,7 @@ interface NimiqTx {
   data?: string
   extraData?: string
   recipientData?: string
+  senderData?: string
   confirmations?: number
   blockNumber?: number
 }
@@ -112,9 +113,12 @@ function checkTx(tx: NimiqTx, expected: { priceLuna: number, memo: string }): st
   }
 
   // The memo rides along as the transaction's recipientData, which Nimiq RPC
-  // hex-encodes. Decode before comparing, otherwise every valid payment reads
-  // as a memo mismatch (data/extraData are not present on this RPC shape).
-  const data = decodeData(tx.recipientData ?? tx.data ?? tx.extraData)
+  // hex-encodes. Verified live: this RPC exposes NO `data` key at all — only
+  // senderData/recipientData — so pick the first non-empty candidate rather
+  // than the first non-nullish ("" would otherwise shadow the real memo).
+  const memoRaw = [tx.recipientData, tx.data, tx.extraData, tx.senderData]
+    .find(v => typeof v === 'string' && v.length > 0) ?? ''
+  const data = decodeData(memoRaw)
   if (data !== expected.memo) {
     return 'Payment memo does not match the checkout session.'
   }
