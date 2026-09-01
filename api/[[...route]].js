@@ -4551,6 +4551,20 @@ You said: "${last.slice(0, 200)}"`;
 
 // apps/api/server/payments.ts
 var normalizeAddress = (a) => (a ?? "").replace(/\s+/g, "").toUpperCase();
+function decodeData(hex) {
+  if (!hex) return "";
+  let h = hex.trim();
+  if (h.startsWith("0x") || h.startsWith("0X")) h = h.slice(2);
+  h = h.replace(/\s+/g, "");
+  if (h.length === 0) return "";
+  if (!/^[0-9a-fA-F]+$/.test(h)) return hex.trim();
+  if (h.length % 2 !== 0) h = "0" + h;
+  try {
+    return Buffer.from(h, "hex").toString("utf8").replace(/\x00+$/g, "");
+  } catch {
+    return "";
+  }
+}
 function unwrap(result) {
   if (result === null || result === void 0) return null;
   if (typeof result === "object" && result !== null && "data" in result) {
@@ -4580,10 +4594,7 @@ async function fetchTx(rpcUrl, txHash) {
   }
 }
 function checkTx(tx, expected) {
-  if (typeof tx.confirmations === "number" && tx.confirmations < 1) {
-    return "Transaction has no confirmations yet.";
-  }
-  const to = normalizeAddress(tx.to ?? tx.recipientAddress);
+  const to = normalizeAddress(tx.to ?? tx.recipient ?? tx.recipientAddress);
   if (to !== normalizeAddress(config.merchantAddress)) {
     return "Payment did not go to the merchant address.";
   }
@@ -4591,7 +4602,7 @@ function checkTx(tx, expected) {
   if (!Number.isFinite(value) || value < expected.priceLuna) {
     return `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.`;
   }
-  const data = (tx.data ?? tx.extraData ?? "").trim();
+  const data = decodeData(tx.recipientData ?? tx.data ?? tx.extraData);
   if (data !== expected.memo) {
     return "Payment memo does not match the checkout session.";
   }
@@ -4605,17 +4616,25 @@ async function verifyPayment(txHash, expected) {
     { name: "mainnet", url: config.nimiqRpcUrl },
     { name: "testnet", url: config.testnetRpcUrl }
   ].filter((n) => Boolean(n.url));
-  let lastReason = "Transaction not found on any network (it may still be unconfirmed, try again in a moment).";
+  let pendingReason = "We cannot see your transaction yet; it may still be propagating. Try again in a moment.";
   for (const net of networks) {
     const tx = await fetchTx(net.url, txHash);
     if (!tx) continue;
+    const conf = tx.confirmations;
+    if (typeof conf !== "number" || conf < 1) {
+      return {
+        ok: false,
+        pending: true,
+        reason: "Transaction is not yet confirmed on-chain. Try again in a moment."
+      };
+    }
     const problem = checkTx(tx, expected);
     if (problem === null) {
       return { ok: true, network: net.name };
     }
-    lastReason = `${net.name}: ${problem}`;
+    return { ok: false, reason: `${net.name}: ${problem}` };
   }
-  return { ok: false, reason: lastReason };
+  return { ok: false, pending: true, reason: pendingReason };
 }
 
 // apps/api/server/app.ts
@@ -4694,6 +4713,9 @@ app.post("/api/checkout/:sessionId/confirm", async (c) => {
     memo: `asknim:${sessionId}`
   });
   if (!result.ok) {
+    if (result.pending) {
+      return c.json({ pending: true, ok: false, reason: result.reason }, 202);
+    }
     payment.status = "rejected";
     payment.rejectionReason = result.reason;
     payment.txHash = txHash;

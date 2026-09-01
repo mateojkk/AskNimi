@@ -5,7 +5,6 @@ import {
   startSession,
   streamChat,
   type ChatMessage,
-  type CheckoutSession,
   type SessionState,
 } from './lib/api.ts'
 import { getDeviceId, getLocalDeviceId, insideNimiqPay, listAccounts, payLanguage, payWithMemo } from './lib/nimiq.ts'
@@ -106,14 +105,34 @@ export default function App() {
     }
   }, [lang])
 
-  const buyPack = useCallback(async (packId: string) => {
+    const buyPack = useCallback(async (packId: string) => {
     if (!deviceId || !session) return
-    const checkout: CheckoutSession = await createCheckout(deviceId, packId)
+    const checkout = await createCheckout(deviceId, packId)
     const txHash = await payWithMemo(checkout.recipient, checkout.priceLuna, checkout.memo)
-    const result = await confirmCheckout(checkout.sessionId, txHash, deviceId)
-    setSession(s => s && { ...s, credits: result.credits })
-    setShowPaywall(false)
-  }, [deviceId, session])
+
+    // The tx is only gossiped at this point; Nimiq confirmation takes ~1-2 min,
+    // and the JSON-RPC may not even see it for a few seconds. Poll /confirm
+    // until it lands on-chain or verification hard-fails.
+    const DEADLINE = Date.now() + 6 * 60_000
+    const POLL_MS = 8_000
+    for (;;) {
+      const res = await confirmCheckout(checkout.sessionId, txHash, deviceId)
+      if (res.ok) {
+        setSession(s => s && { ...s, credits: res.credits })
+        setShowPaywall(false)
+        return
+      }
+      // 202 pending: keep waiting for mining. Anything else that resolved
+      // without ok=true is a terminal verification error.
+      if (!res.pending) {
+        throw new Error(res.reason ?? t(lang, 'paymentFailed'))
+      }
+      if (Date.now() > DEADLINE) {
+        throw new Error('Payment was not confirmed on-chain in time. Please try again.')
+      }
+      await new Promise(r => setTimeout(r, POLL_MS))
+    }
+  }, [deviceId, session, lang])
 
   const freeLeft = session?.freeRemaining ?? 0
   const credits = session?.credits ?? 0

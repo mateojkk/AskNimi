@@ -106,7 +106,13 @@ app.post('/api/checkout/:sessionId/confirm', async (c) => {
     memo: `asknim:${sessionId}`,
   })
 
-  if (!result.ok) {
+    if (!result.ok) {
+    // A not-yet-found / not-yet-confirmed transaction is transient: the user
+    // just broadcast it and Nimiq mining takes ~1-2 min. Don't gate it behind
+    // a permanent 'rejected' record — tell the client to keep polling instead.
+    if (result.pending) {
+      return c.json({ pending: true, ok: false, reason: result.reason }, 202)
+    }
     payment.status = 'rejected'
     payment.rejectionReason = result.reason
     payment.txHash = txHash

@@ -50,7 +50,7 @@ export function createCheckout(deviceId: string, packId: string): Promise<Checko
   }).then(r => r))
 }
 
-export function confirmCheckout(sessionId: string, txHash: string, deviceId: string): Promise<{ ok: boolean, credits: number }> {
+export function confirmCheckout(sessionId: string, txHash: string, deviceId: string): Promise<{ ok: boolean, credits: number, pending?: boolean, reason?: string }> {
   return json(fetch(`/api/checkout/${sessionId}/confirm`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

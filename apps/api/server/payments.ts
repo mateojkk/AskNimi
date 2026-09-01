@@ -20,22 +20,53 @@ export interface VerifyResult {
   ok: boolean
   /** Which chain the payment was found and verified on (when ok). */
   network?: 'mainnet' | 'testnet'
+  /** The transaction was seen on-chain but isn't final yet — it is
+   *  safe for the caller to retry. (e.g. still propagating or the
+   *  block isn't confirmed yet.) */
+  pending?: boolean
   reason?: string
 }
 
 interface NimiqTx {
   from?: string
   to?: string
+  /** Address aliases seen across RPC variants / envelope wrappers. */
   recipientAddress?: string
+  recipient?: string
+  sender?: string
   senderAddress?: string
   value?: number | string
+  /** Memo on a Nimiq basic transaction is delivered as the recipientData
+   *  field, HEX-encoded (the bytes of the UTF-8 data payload). Some RPC
+   *  wrappers also expose it as `data`/`extraData`. */
   data?: string
   extraData?: string
+  recipientData?: string
   confirmations?: number
   blockNumber?: number
 }
 
 const normalizeAddress = (a: string | undefined) => (a ?? '').replace(/\s+/g, '').toUpperCase()
+
+/** Decodes a Nimiq RPC data field back to its UTF-8 memo.
+ *  Nimiq serializes raw bytes (tx data) as hex; if a particular endpoint
+ *  already returns plain UTF-8, we leave non-hex strings untouched. */
+function decodeData(hex: string | undefined): string {
+  if (!hex) return ''
+  let h = hex.trim()
+  if (h.startsWith('0x') || h.startsWith('0X')) h = h.slice(2)
+  h = h.replace(/\s+/g, '')
+  if (h.length === 0) return ''
+  // Not hex (e.g. already UTF-8 text) → hand it back as-is.
+  if (!/^[0-9a-fA-F]+$/.test(h)) return hex.trim()
+  if (h.length % 2 !== 0) h = '0' + h        // right-align odd nibble (defensive)
+  try {
+    return Buffer.from(h, 'hex').toString('utf8').replace(/\x00+$/g, '')
+  }
+  catch {
+    return ''
+  }
+}
 
 /** Some Nimiq JSON-RPC servers wrap results in a { data, metadata } envelope. */
 function unwrap(result: unknown): NimiqTx | null {
@@ -70,11 +101,7 @@ async function fetchTx(rpcUrl: string, txHash: string): Promise<NimiqTx | null> 
 }
 
 function checkTx(tx: NimiqTx, expected: { priceLuna: number, memo: string }): string | null {
-  if (typeof tx.confirmations === 'number' && tx.confirmations < 1) {
-    return 'Transaction has no confirmations yet.'
-  }
-
-  const to = normalizeAddress(tx.to ?? tx.recipientAddress)
+  const to = normalizeAddress(tx.to ?? tx.recipient ?? tx.recipientAddress)
   if (to !== normalizeAddress(config.merchantAddress)) {
     return 'Payment did not go to the merchant address.'
   }
@@ -84,7 +111,10 @@ function checkTx(tx: NimiqTx, expected: { priceLuna: number, memo: string }): st
     return `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.`
   }
 
-  const data = (tx.data ?? tx.extraData ?? '').trim()
+  // The memo rides along as the transaction's recipientData, which Nimiq RPC
+  // hex-encodes. Decode before comparing, otherwise every valid payment reads
+  // as a memo mismatch (data/extraData are not present on this RPC shape).
+  const data = decodeData(tx.recipientData ?? tx.data ?? tx.extraData)
   if (data !== expected.memo) {
     return 'Payment memo does not match the checkout session.'
   }
@@ -105,21 +135,31 @@ export async function verifyPayment(
     { name: 'testnet' as const, url: config.testnetRpcUrl },
   ].filter(n => Boolean(n.url))
 
-  let lastReason = 'Transaction not found on any network (it may still be unconfirmed, try again in a moment).'
+  let pendingReason = 'We cannot see your transaction yet; it may still be propagating. Try again in a moment.'
 
   for (const net of networks) {
     const tx = await fetchTx(net.url, txHash)
-    if (!tx) continue
+    if (!tx) continue                                  // not on this chain — maybe pending elsewhere
+
+    // Seen on this chain but not confirmed yet: safe to retry (mining takes ~1-2 min).
+    const conf = tx.confirmations
+    if (typeof conf !== 'number' || conf < 1) {
+      return {
+        ok: false,
+        pending: true,
+        reason: 'Transaction is not yet confirmed on-chain. Try again in a moment.',
+      }
+    }
 
     const problem = checkTx(tx, expected)
     if (problem === null) {
       return { ok: true, network: net.name }
     }
-    // Found on this chain but failed a check — a hash only exists on the
-    // chain it was broadcast to, so this is the real answer, but keep the
-    // loop going in the (vanishingly unlikely) cross-chain hash collision.
-    lastReason = `${net.name}: ${problem}`
+    // Confirmed on this chain but failed a check — a hash only exists on the
+    // chain it was broadcast to, so this is the real answer.
+    return { ok: false, reason: `${net.name}: ${problem}` }
   }
 
-  return { ok: false, reason: lastReason }
+  // Not found on any configured network → still propagating (retriable).
+  return { ok: false, pending: true, reason: pendingReason }
 }
