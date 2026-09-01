@@ -4698,7 +4698,7 @@ app.post("/api/chat", async (c) => {
   await writeDb(db);
   return streamSSE(c, async (sse) => {
     try {
-      await streamChat(turns, body.preset, (delta) => sse.write(delta));
+      await streamChat(turns, body.preset, (delta) => sse.writeSSE({ data: delta }));
       await sse.writeSSE({
         event: "done",
         data: JSON.stringify({ freeRemaining: remainingFree(rec), credits: rec.credits })

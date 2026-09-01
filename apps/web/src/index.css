@@ -97,8 +97,8 @@ input, button { font-family: inherit; }
 
 .avatar {
   width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; margin-top: 2px;
-  background: radial-gradient(circle at 35% 30%, #e5e5e5, #6f6f6f 55%, #262626);
-  box-shadow: 0 0 10px var(--accent-glow);
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
 }
 
 .bubble {

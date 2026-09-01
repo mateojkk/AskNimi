@@ -162,14 +162,14 @@ export default function App() {
 
         {messages.map((m, i) => (
           <div key={i} className={`msg msg-${m.role}`}>
-            {m.role === 'assistant' && <div className="avatar" />}
+            {m.role === 'assistant' && <img src="/logo.png" alt="" className="avatar" />}
             <div className="bubble">{m.content}</div>
           </div>
         ))}
 
         {(streaming || busy) && (
           <div className="msg msg-assistant">
-            <div className="avatar" />
+            <img src="/logo.png" alt="" className="avatar" />
             <div className="bubble">
               {streaming
                 ? <>{streaming}<span className="caret" /></>
