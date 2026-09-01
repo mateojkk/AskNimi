@@ -97,7 +97,9 @@ export async function streamChat(
     for (const frame of frames) {
       const dataLines = frame.split('\n')
         .filter(l => l.startsWith('data:'))
-        .map(l => l.slice(5).trimStart())
+        // SSE spec: exactly one space after "data:". Strip only that one
+        // space — token deltas like " there" carry meaningful leading spaces.
+        .map(l => (l.startsWith('data: ') ? l.slice(6) : l.slice(5)))
         .join('\n')
       const eventLine = frame.split('\n').find(l => l.startsWith('event:'))
       const event = eventLine?.slice(6).trim()
