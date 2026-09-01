@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build -w asknim-web && npx esbuild serverless/entry.ts --bundle --platform=node --format=esm --outfile=api/[[...route]].js --log-level=error",
+  "buildCommand": "npm run build",
   "outputDirectory": "apps/web/dist",
   "functions": {
     "api/**": {

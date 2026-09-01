@@ -11,7 +11,7 @@
     "dev": "npm run dev -w asknim-web",
     "dev:api": "npm run dev -w asknim-api",
     "dev:all": "concurrently -n web,api -c cyan,magenta \"npm run dev -w asknim-web\" \"npm run dev -w asknim-api\"",
-    "build": "npm run build -w asknim-web",
+    "build": "npm run build -w asknim-web && npx esbuild serverless/entry.ts --bundle --platform=node --format=esm --outfile=\"api/[[...route]].js\" --log-level=error",
     "start": "npm run start -w asknim-api",
     "check:api": "npm run check -w asknim-api",
     "lint": "npm run lint -w asknim-web && npm run check -w asknim-api"
