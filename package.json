@@ -17,6 +17,7 @@
     "lint": "npm run lint -w asknim-web && npm run check -w asknim-api"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.28.2"
   }
 }

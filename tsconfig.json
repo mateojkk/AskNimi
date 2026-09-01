@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["api", "apps/api/server"]
+  "include": ["serverless", "apps/api/server"]
 }
