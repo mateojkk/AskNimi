@@ -21,12 +21,21 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Safari 26 / iOS Liquid Glass: Safari no longer honors theme-color for
+ * toolbar tinting — it samples the CSS background-color of html/body.
+ * An explicit dark root color here prevents white/glassy bars above and
+ * below the page. Kept deliberately opaque. */
+html {
+  background-color: #0a0a0a;
+  min-height: 100%;
+}
 html, body, #root { height: 100%; }
 body {
   font-family: var(--font);
-  background:
-    radial-gradient(1200px 500px at 50% -10%, rgba(255, 255, 255, 0.06), transparent 60%),
-    var(--bg-0);
+  background-color: #0a0a0a;
+  background-image:
+    radial-gradient(1200px 500px at 50% -10%, rgba(255, 255, 255, 0.06), transparent 60%);
   color: var(--text);
   font-weight: 300;
   -webkit-font-smoothing: antialiased;
@@ -48,11 +57,20 @@ input, button { font-family: inherit; }
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 14px 18px;
-  background: rgba(10, 10, 10, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: transparent;
   border-bottom: 1px solid var(--line);
 }
+/* Liquid Glass hardening: fixed/sticky elements must not carry
+ * backdrop-filter or a translucent background themselves (Safari 26
+ * samples/tints those). The glass lives on an absolutely positioned
+ * child instead. */
+.header::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  background: rgba(10, 10, 10, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.header > * { position: relative; z-index: 1; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-logo {
   width: 30px; height: 30px; flex-shrink: 0;
@@ -203,10 +221,17 @@ input, button { font-family: inherit; }
 /* ── paywall sheet ── */
 .sheet-backdrop {
   position: fixed; inset: 0; z-index: 50;
-  background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.78);
   display: flex; align-items: flex-end; justify-content: center;
   animation: fade 0.2s ease both;
 }
+/* Blur on a child, not the fixed element itself (Liquid Glass hardening) */
+.sheet-backdrop::before {
+  content: ''; position: absolute; inset: 0; z-index: 0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.sheet-backdrop > * { position: relative; z-index: 1; }
 @keyframes fade { from { opacity: 0; } }
 .sheet {
   width: 100%; max-width: 520px;
