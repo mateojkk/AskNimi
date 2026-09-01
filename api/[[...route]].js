@@ -4416,8 +4416,13 @@ var config = {
   port: Number(process.env.PORT ?? 8787),
   groqApiKey: process.env.GROQ_API_KEY ?? "",
   groqModel: process.env.GROQ_MODEL ?? "openai/gpt-oss-120b",
-  /** Nimiq JSON-RPC endpoint used to verify incoming payments */
+  /** Nimiq JSON-RPC endpoint used to verify incoming payments (mainnet) */
   nimiqRpcUrl: process.env.NIMIQ_RPC_URL ?? "https://rpc.nimiqwatch.com",
+  /** Testnet RPC — probed too, so faucet-NIM payments verify for testing.
+   *  Credits from testnet payments are capped by testnetCreditCap. */
+  testnetRpcUrl: process.env.NIMIQ_TESTNET_RPC_URL ?? "https://rpc.testnet.nimiqwatch.com/",
+  /** Max credits a device can hold from TESTNET (free faucet NIM) payments */
+  testnetCreditCap: Number(process.env.TESTNET_CREDIT_CAP ?? 300),
   /** Your Nimiq wallet address (spaces stripped at load time) */
   merchantAddress: (process.env.MERCHANT_NIM_ADDRESS ?? "").replace(/\s+/g, ""),
   /** Free AI messages for a brand-new device (onboarding) */
@@ -4546,13 +4551,18 @@ You said: "${last.slice(0, 200)}"`;
 
 // apps/api/server/payments.ts
 var normalizeAddress = (a) => (a ?? "").replace(/\s+/g, "").toUpperCase();
-async function verifyPayment(txHash, expected) {
-  if (!config.merchantAddress) {
-    return { ok: false, reason: "MERCHANT_NIM_ADDRESS is not configured on the server." };
+function unwrap(result) {
+  if (result === null || result === void 0) return null;
+  if (typeof result === "object" && result !== null && "data" in result) {
+    const inner = result.data;
+    if (inner && typeof inner === "object") return inner;
+    return null;
   }
-  let tx;
+  return result;
+}
+async function fetchTx(rpcUrl, txHash) {
   try {
-    const res = await fetch(config.nimiqRpcUrl, {
+    const res = await fetch(rpcUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -4564,27 +4574,48 @@ async function verifyPayment(txHash, expected) {
       signal: AbortSignal.timeout(15e3)
     });
     const json = await res.json();
-    if (!json.result) return { ok: false, reason: "Transaction not found on-chain (yet)." };
-    tx = json.result;
-  } catch (err) {
-    return { ok: false, reason: `RPC request failed: ${err instanceof Error ? err.message : "unknown error"}` };
+    return unwrap(json.result);
+  } catch {
+    return null;
   }
+}
+function checkTx(tx, expected) {
   if (typeof tx.confirmations === "number" && tx.confirmations < 1) {
-    return { ok: false, reason: "Transaction has no confirmations yet." };
+    return "Transaction has no confirmations yet.";
   }
   const to = normalizeAddress(tx.to ?? tx.recipientAddress);
   if (to !== normalizeAddress(config.merchantAddress)) {
-    return { ok: false, reason: "Payment did not go to the merchant address." };
+    return "Payment did not go to the merchant address.";
   }
   const value = Number(tx.value ?? 0);
   if (!Number.isFinite(value) || value < expected.priceLuna) {
-    return { ok: false, reason: `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.` };
+    return `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.`;
   }
   const data = (tx.data ?? tx.extraData ?? "").trim();
   if (data !== expected.memo) {
-    return { ok: false, reason: "Payment memo does not match the checkout session." };
+    return "Payment memo does not match the checkout session.";
   }
-  return { ok: true };
+  return null;
+}
+async function verifyPayment(txHash, expected) {
+  if (!config.merchantAddress) {
+    return { ok: false, reason: "MERCHANT_NIM_ADDRESS is not configured on the server." };
+  }
+  const networks = [
+    { name: "mainnet", url: config.nimiqRpcUrl },
+    { name: "testnet", url: config.testnetRpcUrl }
+  ].filter((n) => Boolean(n.url));
+  let lastReason = "Transaction not found on any network (it may still be unconfirmed, try again in a moment).";
+  for (const net of networks) {
+    const tx = await fetchTx(net.url, txHash);
+    if (!tx) continue;
+    const problem = checkTx(tx, expected);
+    if (problem === null) {
+      return { ok: true, network: net.name };
+    }
+    lastReason = `${net.name}: ${problem}`;
+  }
+  return { ok: false, reason: lastReason };
 }
 
 // apps/api/server/app.ts
@@ -4674,12 +4705,17 @@ app.post("/api/checkout/:sessionId/confirm", async (c) => {
   }
   payment.status = "confirmed";
   payment.txHash = txHash;
+  payment.network = result.network;
   payment.confirmedAt = (/* @__PURE__ */ new Date()).toISOString();
   db.usedTxHashes[txHash] = true;
   const rec = getOrCreateDevice(db, payment.deviceId);
-  rec.credits += payment.credits;
+  if (result.network === "testnet") {
+    rec.credits = Math.min(rec.credits + payment.credits, config.testnetCreditCap);
+  } else {
+    rec.credits += payment.credits;
+  }
   await writeDb(db);
-  return c.json({ ok: true, credits: rec.credits });
+  return c.json({ ok: true, credits: rec.credits, network: result.network });
 });
 app.post("/api/chat", async (c) => {
   const body = await c.req.json();

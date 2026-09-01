@@ -121,14 +121,22 @@ app.post('/api/checkout/:sessionId/confirm', async (c) => {
 
   payment.status = 'confirmed'
   payment.txHash = txHash
+  payment.network = result.network
   payment.confirmedAt = new Date().toISOString()
   db.usedTxHashes[txHash] = true
 
   const rec = getOrCreateDevice(db, payment.deviceId)
-  rec.credits += payment.credits
+  if (result.network === 'testnet') {
+    // Testnet NIM comes from a free faucet, so cap how many credits a
+    // device can accumulate that way (mainnet payments are uncapped).
+    rec.credits = Math.min(rec.credits + payment.credits, config.testnetCreditCap)
+  }
+  else {
+    rec.credits += payment.credits
+  }
   await writeDb(db)
 
-  return c.json({ ok: true, credits: rec.credits })
+  return c.json({ ok: true, credits: rec.credits, network: result.network })
 })
 
 // ── chat: metered, streamed ────────────────────────────────────────────

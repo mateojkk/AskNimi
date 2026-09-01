@@ -55,8 +55,15 @@ export const config = {
   groqApiKey: process.env.GROQ_API_KEY ?? '',
   groqModel: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
 
-  /** Nimiq JSON-RPC endpoint used to verify incoming payments */
+  /** Nimiq JSON-RPC endpoint used to verify incoming payments (mainnet) */
   nimiqRpcUrl: process.env.NIMIQ_RPC_URL ?? 'https://rpc.nimiqwatch.com',
+
+  /** Testnet RPC — probed too, so faucet-NIM payments verify for testing.
+   *  Credits from testnet payments are capped by testnetCreditCap. */
+  testnetRpcUrl: process.env.NIMIQ_TESTNET_RPC_URL ?? 'https://rpc.testnet.nimiqwatch.com/',
+
+  /** Max credits a device can hold from TESTNET (free faucet NIM) payments */
+  testnetCreditCap: Number(process.env.TESTNET_CREDIT_CAP ?? 300),
 
   /** Your Nimiq wallet address (spaces stripped at load time) */
   merchantAddress: (process.env.MERCHANT_NIM_ADDRESS ?? '').replace(/\s+/g, ''),

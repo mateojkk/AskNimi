@@ -19,6 +19,8 @@ export interface PaymentRecord {
   status: PaymentStatus
   txHash?: string
   rejectionReason?: string
+  /** Chain the payment was verified on: 'mainnet' or 'testnet' */
+  network?: 'mainnet' | 'testnet'
   createdAt: string
   confirmedAt?: string
 }
