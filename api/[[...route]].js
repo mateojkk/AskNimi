@@ -4678,6 +4678,10 @@ app.post("/api/checkout", async (c) => {
   if (!deviceId || !pack) return c.json({ error: "deviceId and valid packId required" }, 400);
   if (!config.merchantAddress) return c.json({ error: "Payments not configured yet." }, 503);
   const sessionId = randomId();
+  const memo = `asknim:${sessionId}`;
+  if (Buffer.byteLength(memo, "utf8") > 64) {
+    return c.json({ error: "Checkout memo too long for on-chain data (64-byte cap)." }, 500);
+  }
   const db = await readDb();
   db.payments[sessionId] = {
     deviceId,
@@ -4690,7 +4694,7 @@ app.post("/api/checkout", async (c) => {
   await writeDb(db);
   return c.json({
     sessionId,
-    memo: `asknim:${sessionId}`,
+    memo,
     recipient: config.merchantAddress,
     priceLuna: pack.priceLuna,
     credits: pack.credits
