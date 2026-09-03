@@ -10,6 +10,7 @@ import {
 import { getDeviceId, getLocalDeviceId, insideNimiqPay, listAccounts, payLanguage, payWithMemo } from './lib/nimiq.ts'
 import { PRESETS, t } from './i18n.ts'
 import { Paywall } from './components/Paywall.tsx'
+import { Markdown } from './components/Markdown.tsx'
 
 export default function App() {
   const [deviceId, setDeviceId] = useState<string | null>(null)
@@ -181,7 +182,9 @@ export default function App() {
         {messages.map((m, i) => (
           <div key={i} className={`msg msg-${m.role}`}>
             {m.role === 'assistant' && <img src="/logo.png" alt="" className="avatar" />}
-            <div className="bubble">{m.content}</div>
+            <div className="bubble">
+              {m.role === 'assistant' ? <Markdown content={m.content} /> : m.content}
+            </div>
           </div>
         ))}
 
@@ -190,7 +193,7 @@ export default function App() {
             <img src="/logo.png" alt="" className="avatar" />
             <div className="bubble">
               {streaming
-                ? <>{streaming}<span className="caret" /></>
+                ? <><Markdown content={streaming} /><span className="caret" /></>
                 : <span className="thinking"><i /><i /><i /></span>}
             </div>
           </div>
