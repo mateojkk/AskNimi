@@ -4731,9 +4731,7 @@ app.post("/api/checkout", async (c) => {
     credits: pack.credits
   });
 });
-app.post("/api/checkout/:sessionId/confirm", async (c) => {
-  const sessionId = c.req.param("sessionId");
-  const { txHash, deviceId } = await c.req.json();
+async function handleConfirm(c, sessionId, txHash, deviceId) {
   const db = await readDb();
   const payment = db.payments[sessionId];
   if (!payment || payment.deviceId !== deviceId) {
@@ -4774,6 +4772,16 @@ app.post("/api/checkout/:sessionId/confirm", async (c) => {
   }
   await writeDb(db);
   return c.json({ ok: true, credits: rec.credits, network: result.network });
+}
+app.post("/api/confirm", async (c) => {
+  const { sessionId, txHash, deviceId } = await c.req.json();
+  if (!sessionId) return c.json({ error: "sessionId required" }, 400);
+  return handleConfirm(c, sessionId, txHash ?? "", deviceId);
+});
+app.post("/api/checkout/:sessionId/confirm", async (c) => {
+  const sessionId = c.req.param("sessionId");
+  const { txHash, deviceId } = await c.req.json();
+  return handleConfirm(c, sessionId, txHash ?? "", deviceId);
 });
 app.post("/api/chat", async (c) => {
   const body = await c.req.json();

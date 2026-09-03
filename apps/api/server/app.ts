@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { config } from './config'
 import { readDb, writeDb, storeMode, type DB, type DeviceRecord } from './store'
@@ -93,10 +93,12 @@ app.post('/api/checkout', async (c) => {
 
 // ── checkout: confirm with the on-chain tx hash ────────────────────────
 
-app.post('/api/checkout/:sessionId/confirm', async (c) => {
-  const sessionId = c.req.param('sessionId')
-  const { txHash, deviceId } = await c.req.json<{ txHash?: string, deviceId?: string }>()
-
+async function handleConfirm(
+  c: Context,
+  sessionId: string,
+  txHash: string,
+  deviceId?: string,
+) {
   const db = await readDb()
   const payment = db.payments[sessionId]
   if (!payment || payment.deviceId !== deviceId) {
@@ -113,7 +115,7 @@ app.post('/api/checkout/:sessionId/confirm', async (c) => {
     memo: `asknim:${sessionId}`,
   })
 
-    if (!result.ok) {
+  if (!result.ok) {
     // A not-yet-found / not-yet-confirmed transaction is transient: the user
     // just broadcast it and Nimiq mining takes ~1-2 min. Don't gate it behind
     // a permanent 'rejected' record — tell the client to keep polling instead.
@@ -150,6 +152,18 @@ app.post('/api/checkout/:sessionId/confirm', async (c) => {
   await writeDb(db)
 
   return c.json({ ok: true, credits: rec.credits, network: result.network })
+}
+
+app.post('/api/confirm', async (c) => {
+  const { sessionId, txHash, deviceId } = await c.req.json<{ sessionId?: string, txHash?: string, deviceId?: string }>()
+  if (!sessionId) return c.json({ error: 'sessionId required' }, 400)
+  return handleConfirm(c, sessionId, txHash ?? '', deviceId)
+})
+
+app.post('/api/checkout/:sessionId/confirm', async (c) => {
+  const sessionId = c.req.param('sessionId')
+  const { txHash, deviceId } = await c.req.json<{ txHash?: string, deviceId?: string }>()
+  return handleConfirm(c, sessionId, txHash ?? '', deviceId)
 })
 
 // ── chat: metered, streamed ────────────────────────────────────────────

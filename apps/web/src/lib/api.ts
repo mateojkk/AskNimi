@@ -52,10 +52,10 @@ export function createCheckout(deviceId: string, packId: string): Promise<Checko
 }
 
 export function confirmCheckout(sessionId: string, txHash: string, deviceId: string): Promise<{ ok: boolean, credits: number, pending?: boolean, reason?: string }> {
-  return json(fetch(`/api/checkout/${sessionId}/confirm`, {
+  return json(fetch('/api/confirm', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ txHash, deviceId }),
+    body: JSON.stringify({ sessionId, txHash, deviceId }),
   }).then(r => r))
 }
 

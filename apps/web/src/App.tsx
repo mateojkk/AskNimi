@@ -105,16 +105,15 @@ export default function App() {
     }
   }, [lang])
 
-    const buyPack = useCallback(async (packId: string) => {
+  const buyPack = useCallback(async (packId: string, onSent?: () => void) => {
     if (!deviceId || !session) return
     const checkout = await createCheckout(deviceId, packId)
     const txHash = await payWithMemo(checkout.recipient, checkout.priceLuna, checkout.memo)
+    onSent?.()
 
-    // The tx is only gossiped at this point; Nimiq confirmation takes ~1-2 min,
-    // and the JSON-RPC may not even see it for a few seconds. Poll /confirm
-    // until it lands on-chain or verification hard-fails.
+    // The tx is gossiped; poll /confirm until mined or rejected
     const DEADLINE = Date.now() + 6 * 60_000
-    const POLL_MS = 8_000
+    const POLL_MS = 3_000
     for (;;) {
       const res = await confirmCheckout(checkout.sessionId, txHash.trim(), deviceId)
       if (res.ok) {

@@ -7,13 +7,13 @@ interface Props {
   packs: SessionState['packs']
   insidePay: boolean
   onClose: () => void
-  onBuy: (packId: string) => Promise<void>
+  onBuy: (packId: string, onSent?: () => void) => Promise<void>
 }
 
 const fmt = (luna: number) => (luna / 100_000).toLocaleString('en-US', { maximumFractionDigits: 2 })
 
 export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
-  const [phase, setPhase] = useState<'pick' | 'waiting' | 'done' | 'failed'>('pick')
+  const [phase, setPhase] = useState<'pick' | 'waiting' | 'verifying' | 'done' | 'failed'>('pick')
   const [failure, setFailure] = useState('')
 
   const label = (key: StringKey) => t(lang, key)
@@ -26,7 +26,7 @@ export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
     }
     try {
       setPhase('waiting')
-      await onBuy(packId)
+      await onBuy(packId, () => setPhase('verifying'))
       setPhase('done')
       setTimeout(onClose, 900)
     }
@@ -61,6 +61,12 @@ export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
           </>
         )}
         {phase === 'waiting' && <div className="sheet-status">{label('waitingPayment')}</div>}
+        {phase === 'verifying' && (
+          <div className="sheet-status">
+            {label('verifying')}
+            <small style={{ marginTop: 8, opacity: 0.8, fontSize: '0.85em' }}>Confirming transaction on-chain…</small>
+          </div>
+        )}
         {phase === 'done' && <div className="sheet-status sheet-ok">✓ {label('paymentSuccess')}</div>}
         {phase === 'failed' && (
           <div className="sheet-status sheet-fail">
