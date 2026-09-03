@@ -116,7 +116,7 @@ export default function App() {
     const DEADLINE = Date.now() + 6 * 60_000
     const POLL_MS = 8_000
     for (;;) {
-      const res = await confirmCheckout(checkout.sessionId, txHash, deviceId)
+      const res = await confirmCheckout(checkout.sessionId, txHash.trim(), deviceId)
       if (res.ok) {
         setSession(s => s && { ...s, credits: res.credits })
         setShowPaywall(false)
@@ -125,7 +125,7 @@ export default function App() {
       // 202 pending: keep waiting for mining. Anything else that resolved
       // without ok=true is a terminal verification error.
       if (!res.pending) {
-        throw new Error(res.reason ?? t(lang, 'paymentFailed'))
+        throw new Error(res.reason || t(lang, 'paymentFailed'))
       }
       if (Date.now() > DEADLINE) {
         throw new Error('Payment was not confirmed on-chain in time. Please try again.')

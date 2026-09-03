@@ -4439,8 +4439,8 @@ var config = {
   /** Upstash Redis REST credentials (enables the serverless store) */
   upstashUrl: process.env.UPSTASH_REDIS_REST_URL ?? "",
   upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN ?? "",
-  dataDir: path.resolve(process.env.DATA_DIR ?? "data"),
-  dataFile: path.resolve(process.env.DATA_DIR ?? "data", "db.json")
+  dataDir: path.resolve(process.env.DATA_DIR ?? (process.env.VERCEL ? "/tmp/data" : "data")),
+  dataFile: path.resolve(process.env.DATA_DIR ?? (process.env.VERCEL ? "/tmp/data" : "data"), "db.json")
 };
 
 // apps/api/server/store.ts
@@ -4451,6 +4451,7 @@ var remote = () => Boolean(config.upstashUrl && config.upstashToken);
 function storeMode() {
   return remote() ? "redis" : "filesystem";
 }
+var memoryDb = emptyDb();
 async function readDb() {
   if (remote()) {
     try {
@@ -4459,19 +4460,26 @@ async function readDb() {
         signal: AbortSignal.timeout(8e3)
       });
       const json = await res.json();
-      return json.result ? JSON.parse(json.result) : emptyDb();
+      if (json.result) {
+        memoryDb = JSON.parse(json.result);
+        return memoryDb;
+      }
+      return memoryDb;
     } catch (err) {
-      console.error("[store] remote read failed, using empty db:", err);
-      return emptyDb();
+      console.error("[store] remote read failed, using in-memory db:", err);
+      return memoryDb;
     }
   }
   try {
-    return JSON.parse(fs2.readFileSync(config.dataFile, "utf-8"));
+    const disk = JSON.parse(fs2.readFileSync(config.dataFile, "utf-8"));
+    memoryDb = disk;
+    return disk;
   } catch {
-    return emptyDb();
+    return memoryDb;
   }
 }
 async function writeDb(db) {
+  memoryDb = db;
   if (remote()) {
     try {
       const res = await fetch(`${config.upstashUrl}/set/${encodeURIComponent(DB_KEY)}`, {
@@ -4494,7 +4502,7 @@ async function writeDb(db) {
     fs2.renameSync(tmp, config.dataFile);
     return true;
   } catch (err) {
-    console.warn("[store] filesystem write failed (serverless? using memory):", err instanceof Error ? err.message : err);
+    console.warn("[store] filesystem write failed (state retained in memory):", err instanceof Error ? err.message : err);
     return false;
   }
 }
@@ -4560,7 +4568,7 @@ function decodeData(hex) {
   if (!/^[0-9a-fA-F]+$/.test(h)) return hex.trim();
   if (h.length % 2 !== 0) h = "0" + h;
   try {
-    return Buffer.from(h, "hex").toString("utf8").replace(/\x00+$/g, "");
+    return Buffer.from(h, "hex").toString("utf8").replace(/\x00+$/g, "").trim();
   } catch {
     return "";
   }
@@ -4574,7 +4582,9 @@ function unwrap(result) {
   }
   return result;
 }
-async function fetchTx(rpcUrl, txHash) {
+async function fetchTx(rpcUrl, rawHash) {
+  const txHash = (rawHash ?? "").trim().replace(/^0x/i, "");
+  if (!txHash) return null;
   try {
     const res = await fetch(rpcUrl, {
       method: "POST",
@@ -4585,7 +4595,7 @@ async function fetchTx(rpcUrl, txHash) {
         method: "getTransactionByHash",
         params: [txHash]
       }),
-      signal: AbortSignal.timeout(15e3)
+      signal: AbortSignal.timeout(7e3)
     });
     const json = await res.json();
     return unwrap(json.result);
@@ -4598,18 +4608,26 @@ function checkTx(tx, expected) {
   if (to !== normalizeAddress(config.merchantAddress)) {
     return "Payment did not go to the merchant address.";
   }
+  if (tx.executionResult === false) {
+    return "Transaction execution failed on-chain.";
+  }
   const value = Number(tx.value ?? 0);
   if (!Number.isFinite(value) || value < expected.priceLuna) {
     return `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.`;
   }
   const memoRaw = [tx.recipientData, tx.data, tx.extraData, tx.senderData].find((v) => typeof v === "string" && v.length > 0) ?? "";
-  const data = decodeData(memoRaw);
-  if (data !== expected.memo) {
+  const data = decodeData(memoRaw).trim();
+  const exp = expected.memo.trim();
+  if (data !== exp && !data.startsWith(exp)) {
     return "Payment memo does not match the checkout session.";
   }
   return null;
 }
-async function verifyPayment(txHash, expected) {
+async function verifyPayment(rawTxHash, expected) {
+  const txHash = (rawTxHash ?? "").trim().replace(/^0x/i, "");
+  if (!txHash) {
+    return { ok: false, reason: "Invalid or missing transaction hash." };
+  }
   if (!config.merchantAddress) {
     return { ok: false, reason: "MERCHANT_NIM_ADDRESS is not configured on the server." };
   }
@@ -4617,17 +4635,19 @@ async function verifyPayment(txHash, expected) {
     { name: "mainnet", url: config.nimiqRpcUrl },
     { name: "testnet", url: config.testnetRpcUrl }
   ].filter((n) => Boolean(n.url));
-  let pendingReason = "We cannot see your transaction yet; it may still be propagating. Try again in a moment.";
-  for (const net of networks) {
-    const tx = await fetchTx(net.url, txHash);
+  const settled = await Promise.all(
+    networks.map(async (net) => {
+      const tx = await fetchTx(net.url, txHash);
+      return { net, tx };
+    })
+  );
+  let pendingFound = false;
+  for (const { net, tx } of settled) {
     if (!tx) continue;
     const conf = tx.confirmations;
     if (typeof conf !== "number" || conf < 1) {
-      return {
-        ok: false,
-        pending: true,
-        reason: "Transaction is not yet confirmed on-chain. Try again in a moment."
-      };
+      pendingFound = true;
+      continue;
     }
     const problem = checkTx(tx, expected);
     if (problem === null) {
@@ -4635,7 +4655,18 @@ async function verifyPayment(txHash, expected) {
     }
     return { ok: false, reason: `${net.name}: ${problem}` };
   }
-  return { ok: false, pending: true, reason: pendingReason };
+  if (pendingFound) {
+    return {
+      ok: false,
+      pending: true,
+      reason: "Transaction is not yet confirmed on-chain. Try again in a moment."
+    };
+  }
+  return {
+    ok: false,
+    pending: true,
+    reason: "We cannot see your transaction yet; it may still be propagating. Try again in a moment."
+  };
 }
 
 // apps/api/server/app.ts

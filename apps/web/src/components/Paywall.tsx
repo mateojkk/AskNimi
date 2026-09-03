@@ -31,7 +31,8 @@ export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
       setTimeout(onClose, 900)
     }
     catch (err) {
-      setFailure(err instanceof Error ? err.message : label('paymentFailed'))
+      const msg = (err instanceof Error && err.message) ? err.message : label('paymentFailed')
+      setFailure(msg)
       setPhase('failed')
     }
   }

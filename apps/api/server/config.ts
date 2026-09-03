@@ -86,6 +86,6 @@ export const config = {
   upstashUrl: process.env.UPSTASH_REDIS_REST_URL ?? '',
   upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
 
-  dataDir: path.resolve(process.env.DATA_DIR ?? 'data'),
-  dataFile: path.resolve(process.env.DATA_DIR ?? 'data', 'db.json'),
+  dataDir: path.resolve(process.env.DATA_DIR ?? (process.env.VERCEL ? '/tmp/data' : 'data')),
+  dataFile: path.resolve(process.env.DATA_DIR ?? (process.env.VERCEL ? '/tmp/data' : 'data'), 'db.json'),
 }

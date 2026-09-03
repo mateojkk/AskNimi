@@ -25,9 +25,10 @@ export interface ChatMessage {
 async function json<T>(resOrPromise: Response | Promise<Response>): Promise<T> {
   const res = await resOrPromise
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string, code?: string }
-    const err = new Error(body.error ?? res.statusText) as Error & { code?: string, status?: number }
-    err.code = body.code
+    const body = await res.json().catch(() => ({ error: '' })) as { error?: string, code?: string }
+    const message = body?.error || res.statusText || `Request failed (${res.status})`
+    const err = new Error(message) as Error & { code?: string, status?: number }
+    err.code = body?.code
     err.status = res.status
     throw err
   }

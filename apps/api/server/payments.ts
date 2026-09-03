@@ -45,6 +45,7 @@ interface NimiqTx {
   senderData?: string
   confirmations?: number
   blockNumber?: number
+  executionResult?: boolean
 }
 
 const normalizeAddress = (a: string | undefined) => (a ?? '').replace(/\s+/g, '').toUpperCase()
@@ -62,7 +63,7 @@ function decodeData(hex: string | undefined): string {
   if (!/^[0-9a-fA-F]+$/.test(h)) return hex.trim()
   if (h.length % 2 !== 0) h = '0' + h        // right-align odd nibble (defensive)
   try {
-    return Buffer.from(h, 'hex').toString('utf8').replace(/\x00+$/g, '')
+    return Buffer.from(h, 'hex').toString('utf8').replace(/\x00+$/g, '').trim()
   }
   catch {
     return ''
@@ -80,7 +81,9 @@ function unwrap(result: unknown): NimiqTx | null {
   return result as NimiqTx
 }
 
-async function fetchTx(rpcUrl: string, txHash: string): Promise<NimiqTx | null> {
+async function fetchTx(rpcUrl: string, rawHash: string): Promise<NimiqTx | null> {
+  const txHash = (rawHash ?? '').trim().replace(/^0x/i, '')
+  if (!txHash) return null
   try {
     const res = await fetch(rpcUrl, {
       method: 'POST',
@@ -91,7 +94,7 @@ async function fetchTx(rpcUrl: string, txHash: string): Promise<NimiqTx | null> 
         method: 'getTransactionByHash',
         params: [txHash],
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(7_000),
     })
     const json = await res.json() as { result?: unknown, error?: unknown }
     return unwrap(json.result)
@@ -107,6 +110,10 @@ function checkTx(tx: NimiqTx, expected: { priceLuna: number, memo: string }): st
     return 'Payment did not go to the merchant address.'
   }
 
+  if (tx.executionResult === false) {
+    return 'Transaction execution failed on-chain.'
+  }
+
   const value = Number(tx.value ?? 0)
   if (!Number.isFinite(value) || value < expected.priceLuna) {
     return `Payment amount too low: ${value} luna < ${expected.priceLuna} luna.`
@@ -118,8 +125,9 @@ function checkTx(tx: NimiqTx, expected: { priceLuna: number, memo: string }): st
   // than the first non-nullish ("" would otherwise shadow the real memo).
   const memoRaw = [tx.recipientData, tx.data, tx.extraData, tx.senderData]
     .find(v => typeof v === 'string' && v.length > 0) ?? ''
-  const data = decodeData(memoRaw)
-  if (data !== expected.memo) {
+  const data = decodeData(memoRaw).trim()
+  const exp = expected.memo.trim()
+  if (data !== exp && !data.startsWith(exp)) {
     return 'Payment memo does not match the checkout session.'
   }
 
@@ -127,9 +135,14 @@ function checkTx(tx: NimiqTx, expected: { priceLuna: number, memo: string }): st
 }
 
 export async function verifyPayment(
-  txHash: string,
+  rawTxHash: string,
   expected: { priceLuna: number, memo: string },
 ): Promise<VerifyResult> {
+  const txHash = (rawTxHash ?? '').trim().replace(/^0x/i, '')
+  if (!txHash) {
+    return { ok: false, reason: 'Invalid or missing transaction hash.' }
+  }
+
   if (!config.merchantAddress) {
     return { ok: false, reason: 'MERCHANT_NIM_ADDRESS is not configured on the server.' }
   }
@@ -139,31 +152,46 @@ export async function verifyPayment(
     { name: 'testnet' as const, url: config.testnetRpcUrl },
   ].filter(n => Boolean(n.url))
 
-  let pendingReason = 'We cannot see your transaction yet; it may still be propagating. Try again in a moment.'
+  // Probe both mainnet and testnet concurrently to avoid serverless function timeouts
+  const settled = await Promise.all(
+    networks.map(async net => {
+      const tx = await fetchTx(net.url, txHash)
+      return { net, tx }
+    }),
+  )
 
-  for (const net of networks) {
-    const tx = await fetchTx(net.url, txHash)
-    if (!tx) continue                                  // not on this chain — maybe pending elsewhere
+  let pendingFound = false
 
-    // Seen on this chain but not confirmed yet: safe to retry (mining takes ~1-2 min).
+  for (const { net, tx } of settled) {
+    if (!tx) continue
+
+    // Seen on this chain but not confirmed yet: safe to retry.
     const conf = tx.confirmations
     if (typeof conf !== 'number' || conf < 1) {
-      return {
-        ok: false,
-        pending: true,
-        reason: 'Transaction is not yet confirmed on-chain. Try again in a moment.',
-      }
+      pendingFound = true
+      continue
     }
 
     const problem = checkTx(tx, expected)
     if (problem === null) {
       return { ok: true, network: net.name }
     }
-    // Confirmed on this chain but failed a check — a hash only exists on the
-    // chain it was broadcast to, so this is the real answer.
+    // Confirmed on this chain but failed a check — this is terminal on this chain
     return { ok: false, reason: `${net.name}: ${problem}` }
   }
 
-  // Not found on any configured network → still propagating (retriable).
-  return { ok: false, pending: true, reason: pendingReason }
+  if (pendingFound) {
+    return {
+      ok: false,
+      pending: true,
+      reason: 'Transaction is not yet confirmed on-chain. Try again in a moment.',
+    }
+  }
+
+  // Not found on any configured network yet (still propagating)
+  return {
+    ok: false,
+    pending: true,
+    reason: 'We cannot see your transaction yet; it may still be propagating. Try again in a moment.',
+  }
 }

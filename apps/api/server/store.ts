@@ -52,6 +52,8 @@ export function storeMode(): 'redis' | 'filesystem' {
  * traffic levels this is perfectly fine; if you scale this up, switch
  * to per-key records or a transactional DB.
  */
+let memoryDb: DB = emptyDb()
+
 export async function readDb(): Promise<DB> {
   if (remote()) {
     try {
@@ -60,22 +62,29 @@ export async function readDb(): Promise<DB> {
         signal: AbortSignal.timeout(8000),
       })
       const json = await res.json() as { result: string | null }
-      return json.result ? JSON.parse(json.result) as DB : emptyDb()
+      if (json.result) {
+        memoryDb = JSON.parse(json.result) as DB
+        return memoryDb
+      }
+      return memoryDb
     }
     catch (err) {
-      console.error('[store] remote read failed, using empty db:', err)
-      return emptyDb()
+      console.error('[store] remote read failed, using in-memory db:', err)
+      return memoryDb
     }
   }
   try {
-    return JSON.parse(fs.readFileSync(config.dataFile, 'utf-8')) as DB
+    const disk = JSON.parse(fs.readFileSync(config.dataFile, 'utf-8')) as DB
+    memoryDb = disk
+    return disk
   }
   catch {
-    return emptyDb()
+    return memoryDb
   }
 }
 
 export async function writeDb(db: DB): Promise<boolean> {
+  memoryDb = db
   if (remote()) {
     try {
       const res = await fetch(`${config.upstashUrl}/set/${encodeURIComponent(DB_KEY)}`, {
@@ -95,8 +104,7 @@ export async function writeDb(db: DB): Promise<boolean> {
       return false
     }
   }
-  // Filesystem backend: fine locally, but the serverless filesystem is
-  // read-only, so degrade to in-memory instead of throwing a 500.
+  // Filesystem backend: fine locally, but on serverless fallback to in-memory + /tmp
   try {
     fs.mkdirSync(config.dataDir, { recursive: true })
     const tmp = `${config.dataFile}.tmp`
@@ -105,7 +113,7 @@ export async function writeDb(db: DB): Promise<boolean> {
     return true
   }
   catch (err) {
-    console.warn('[store] filesystem write failed (serverless? using memory):', err instanceof Error ? err.message : err)
+    console.warn('[store] filesystem write failed (state retained in memory):', err instanceof Error ? err.message : err)
     return false
   }
 }

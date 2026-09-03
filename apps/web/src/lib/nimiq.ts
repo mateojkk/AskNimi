@@ -47,7 +47,9 @@ export async function payWithMemo(recipient: string, valueLuna: number, memo: st
     data: memo,
   })
   if (typeof res !== 'string') {
-    throw new Error(String((res as { error?: { message?: string } }).error?.message ?? 'Payment failed'))
+    const errObj = (res as { error?: { message?: string, type?: string } }).error
+    const message = errObj?.message || errObj?.type || 'Payment was canceled or failed in Nimiq Pay'
+    throw new Error(message)
   }
   return res
 }
