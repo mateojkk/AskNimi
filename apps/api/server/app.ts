@@ -52,6 +52,7 @@ app.post('/api/session', async (c) => {
     packs: config.packs,
     merchantAddress: config.merchantAddress || null,
     aiConfigured: Boolean(config.groqApiKey),
+    testnetCreditCap: config.testnetCreditCap,
   })
 })
 
@@ -63,6 +64,14 @@ app.post('/api/checkout', async (c) => {
   if (!deviceId || !pack) return c.json({ error: 'deviceId and valid packId required' }, 400)
   if (!config.merchantAddress) return c.json({ error: 'Payments not configured yet.' }, 503)
 
+  const db = await readDb()
+  const rec = getOrCreateDevice(db, deviceId)
+  if (rec.credits >= config.testnetCreditCap) {
+    return c.json({
+      error: `You already have ${rec.credits} answers (maximum limit: ${config.testnetCreditCap}). Use some answers before topping up again.`
+    }, 400)
+  }
+
   const sessionId = randomId()
   // Nimiq caps tx data at 64 bytes for basic-address recipients; a memo that
   // exceeds it would be rejected on-chain and then fail verification with an
@@ -71,7 +80,6 @@ app.post('/api/checkout', async (c) => {
   if (Buffer.byteLength(memo, 'utf8') > 64) {
     return c.json({ error: 'Checkout memo too long for on-chain data (64-byte cap).' }, 500)
   }
-  const db = await readDb()
   db.payments[sessionId] = {
     deviceId,
     packId: pack.id,
@@ -141,14 +149,7 @@ async function handleConfirm(
   db.usedTxHashes[txHash] = true
 
   const rec = getOrCreateDevice(db, payment.deviceId)
-  if (result.network === 'testnet') {
-    // Testnet NIM comes from a free faucet, so cap how many credits a
-    // device can accumulate that way (mainnet payments are uncapped).
-    rec.credits = Math.min(rec.credits + payment.credits, config.testnetCreditCap)
-  }
-  else {
-    rec.credits += payment.credits
-  }
+  rec.credits += payment.credits
   await writeDb(db)
 
   return c.json({ ok: true, credits: rec.credits, network: result.network })

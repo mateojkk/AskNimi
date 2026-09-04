@@ -291,6 +291,12 @@ input, button { font-family: inherit; }
 .sheet-handle { width: 42px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 0 auto 20px; }
 .sheet h2 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 8px; }
 .sheet-sub { color: var(--text-2); font-size: 13.5px; line-height: 1.55; margin-bottom: 22px; }
+.sheet-warn {
+  margin-bottom: 18px; padding: 10px 14px; border-radius: 12px;
+  font-size: 13px; line-height: 1.45;
+  background: rgba(255, 170, 0, 0.1); border: 1px solid rgba(255, 170, 0, 0.3);
+  color: #ffb822; text-align: center;
+}
 .packs { display: flex; gap: 10px; margin-bottom: 16px; }
 .pack {
   flex: 1; position: relative; padding: 20px 12px 16px;

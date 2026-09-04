@@ -246,6 +246,9 @@ export default function App() {
           lang={lang}
           packs={session.packs}
           insidePay={Boolean(insidePay)}
+          credits={session.credits}
+          freeRemaining={session.freeRemaining}
+          maxCredits={session.testnetCreditCap}
           onClose={() => setShowPaywall(false)}
           onBuy={buyPack}
         />

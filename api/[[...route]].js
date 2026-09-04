@@ -4700,7 +4700,8 @@ app.post("/api/session", async (c) => {
     credits: rec.credits,
     packs: config.packs,
     merchantAddress: config.merchantAddress || null,
-    aiConfigured: Boolean(config.groqApiKey)
+    aiConfigured: Boolean(config.groqApiKey),
+    testnetCreditCap: config.testnetCreditCap
   });
 });
 app.post("/api/checkout", async (c) => {
@@ -4708,12 +4709,18 @@ app.post("/api/checkout", async (c) => {
   const pack = packById(packId ?? "");
   if (!deviceId || !pack) return c.json({ error: "deviceId and valid packId required" }, 400);
   if (!config.merchantAddress) return c.json({ error: "Payments not configured yet." }, 503);
+  const db = await readDb();
+  const rec = getOrCreateDevice(db, deviceId);
+  if (rec.credits >= config.testnetCreditCap) {
+    return c.json({
+      error: `You already have ${rec.credits} answers (maximum limit: ${config.testnetCreditCap}). Use some answers before topping up again.`
+    }, 400);
+  }
   const sessionId = randomId();
   const memo = `asknim:${sessionId}`;
   if (Buffer.byteLength(memo, "utf8") > 64) {
     return c.json({ error: "Checkout memo too long for on-chain data (64-byte cap)." }, 500);
   }
-  const db = await readDb();
   db.payments[sessionId] = {
     deviceId,
     packId: pack.id,
@@ -4765,11 +4772,7 @@ async function handleConfirm(c, sessionId, txHash, deviceId) {
   payment.confirmedAt = (/* @__PURE__ */ new Date()).toISOString();
   db.usedTxHashes[txHash] = true;
   const rec = getOrCreateDevice(db, payment.deviceId);
-  if (result.network === "testnet") {
-    rec.credits = Math.min(rec.credits + payment.credits, config.testnetCreditCap);
-  } else {
-    rec.credits += payment.credits;
-  }
+  rec.credits += payment.credits;
   await writeDb(db);
   return c.json({ ok: true, credits: rec.credits, network: result.network });
 }

@@ -5,6 +5,7 @@ export interface SessionState {
   packs: { id: string, label: string, priceLuna: number, credits: number }[]
   merchantAddress: string | null
   aiConfigured: boolean
+  testnetCreditCap?: number
 }
 
 export interface CheckoutSession {

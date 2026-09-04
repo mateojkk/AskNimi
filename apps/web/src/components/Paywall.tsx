@@ -6,19 +6,27 @@ interface Props {
   lang: string
   packs: SessionState['packs']
   insidePay: boolean
+  credits?: number
+  freeRemaining?: number
+  maxCredits?: number
   onClose: () => void
   onBuy: (packId: string, onSent?: () => void) => Promise<void>
 }
 
 const fmt = (luna: number) => (luna / 100_000).toLocaleString('en-US', { maximumFractionDigits: 2 })
 
-export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
+export function Paywall({ lang, packs, insidePay, credits, freeRemaining, maxCredits, onClose, onBuy }: Props) {
   const [phase, setPhase] = useState<'pick' | 'waiting' | 'verifying' | 'done' | 'failed'>('pick')
   const [failure, setFailure] = useState('')
 
   const label = (key: StringKey) => t(lang, key)
 
+  const isMaxed = maxCredits !== undefined && (credits ?? 0) >= maxCredits
+  const totalBalance = (credits ?? 0) + (freeRemaining ?? 0)
+  const hasBalance = totalBalance > 0
+
   const buy = async (packId: string) => {
+    if (isMaxed) return
     if (!insidePay) {
       setFailure('Demo mode: open AskNim inside Nimiq Pay to pay.')
       setPhase('failed')
@@ -43,11 +51,28 @@ export function Paywall({ lang, packs, insidePay, onClose, onBuy }: Props) {
         <div className="sheet-handle" />
         {phase === 'pick' && (
           <>
-            <h2>{label('needCredits')}</h2>
-            <p className="sheet-sub">{label('needCreditsBody')}</p>
+            <h2>{hasBalance ? label('topUpAnswers') : label('needCredits')}</h2>
+            <p className="sheet-sub">
+              {hasBalance
+                ? t(lang, 'topUpAnswersBody', { n: totalBalance })
+                : label('needCreditsBody')}
+            </p>
+
+            {isMaxed && (
+              <div className="sheet-warn">
+                {t(lang, 'maxLimitReached', { n: maxCredits })}
+              </div>
+            )}
+
             <div className="packs">
               {packs.map((p, i) => (
-                <button key={p.id} className={`pack${i === 1 ? ' pack-best' : ''}`} onClick={() => buy(p.id)}>
+                <button
+                  key={p.id}
+                  className={`pack${i === 1 ? ' pack-best' : ''}`}
+                  onClick={() => !isMaxed && buy(p.id)}
+                  disabled={isMaxed}
+                  style={isMaxed ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                >
                   {i === 1 && <span className="pack-badge">Best value</span>}
                   <span className="pack-price">{fmt(p.priceLuna)}</span>
                   <span className="pack-unit">NIM</span>
