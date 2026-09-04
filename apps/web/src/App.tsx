@@ -7,7 +7,15 @@ import {
   type ChatMessage,
   type SessionState,
 } from './lib/api.ts'
-import { getDeviceId, getLocalDeviceId, insideNimiqPay, listAccounts, payLanguage, payWithMemo } from './lib/nimiq.ts'
+import {
+  detectNetwork,
+  getDeviceId,
+  getLocalDeviceId,
+  insideNimiqPay,
+  listAccounts,
+  payLanguage,
+  payWithMemo,
+} from './lib/nimiq.ts'
 import { PRESETS, t } from './i18n.ts'
 import { Paywall } from './components/Paywall.tsx'
 import { Markdown } from './components/Markdown.tsx'
@@ -16,6 +24,7 @@ export default function App() {
   const [deviceId, setDeviceId] = useState<string | null>(null)
   const [session, setSession] = useState<SessionState | null>(null)
   const [insidePay, setInsidePay] = useState<boolean | null>(null)
+  const [network, setNetwork] = useState<'testnet' | 'mainnet'>('testnet')
   const [lang, setLang] = useState('en')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -33,6 +42,7 @@ export default function App() {
       setInsidePay(inPay)
       let id: string
       if (inPay) {
+        detectNetwork().then(setNetwork).catch(() => {})
         try {
           id = await getDeviceId()
         }
@@ -108,7 +118,7 @@ export default function App() {
 
   const buyPack = useCallback(async (packId: string, onSent?: () => void) => {
     if (!deviceId || !session) return
-    const checkout = await createCheckout(deviceId, packId)
+    const checkout = await createCheckout(deviceId, packId, network)
     const txHash = await payWithMemo(checkout.recipient, checkout.priceLuna, checkout.memo)
     onSent?.()
 
@@ -132,7 +142,7 @@ export default function App() {
       }
       await new Promise(r => setTimeout(r, POLL_MS))
     }
-  }, [deviceId, session, lang])
+  }, [deviceId, session, network, lang])
 
   const freeLeft = session?.freeRemaining ?? 0
   const credits = session?.credits ?? 0
@@ -248,7 +258,7 @@ export default function App() {
           insidePay={Boolean(insidePay)}
           credits={session.credits}
           freeRemaining={session.freeRemaining}
-          maxCredits={session.testnetCreditCap}
+          maxCredits={network === 'testnet' ? session.testnetCreditCap : undefined}
           onClose={() => setShowPaywall(false)}
           onBuy={buyPack}
         />

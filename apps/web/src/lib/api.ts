@@ -44,11 +44,11 @@ export function startSession(deviceId: string): Promise<SessionState> {
   }).then(r => r))
 }
 
-export function createCheckout(deviceId: string, packId: string): Promise<CheckoutSession> {
+export function createCheckout(deviceId: string, packId: string, network?: string): Promise<CheckoutSession> {
   return json(fetch('/api/checkout', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ deviceId, packId }),
+    body: JSON.stringify({ deviceId, packId, network }),
   }).then(r => r))
 }
 

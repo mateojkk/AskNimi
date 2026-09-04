@@ -21,12 +21,16 @@ export function Paywall({ lang, packs, insidePay, credits, freeRemaining, maxCre
 
   const label = (key: StringKey) => t(lang, key)
 
-  const isMaxed = maxCredits !== undefined && (credits ?? 0) >= maxCredits
-  const totalBalance = (credits ?? 0) + (freeRemaining ?? 0)
+  const currentCredits = credits ?? 0
+  const totalBalance = currentCredits + (freeRemaining ?? 0)
   const hasBalance = totalBalance > 0
+  const isPackDisabled = (packCredits: number) =>
+    maxCredits !== undefined && (currentCredits + packCredits > maxCredits)
+  const isAllMaxed = maxCredits !== undefined && packs.every(p => currentCredits + p.credits > maxCredits)
 
   const buy = async (packId: string) => {
-    if (isMaxed) return
+    const pack = packs.find(p => p.id === packId)
+    if (pack && isPackDisabled(pack.credits)) return
     if (!insidePay) {
       setFailure('Demo mode: open AskNim inside Nimiq Pay to pay.')
       setPhase('failed')
@@ -58,27 +62,35 @@ export function Paywall({ lang, packs, insidePay, credits, freeRemaining, maxCre
                 : label('needCreditsBody')}
             </p>
 
-            {isMaxed && (
+            {isAllMaxed && (
               <div className="sheet-warn">
                 {t(lang, 'maxLimitReached', { n: maxCredits })}
               </div>
             )}
 
             <div className="packs">
-              {packs.map((p, i) => (
-                <button
-                  key={p.id}
-                  className={`pack${i === 1 ? ' pack-best' : ''}`}
-                  onClick={() => !isMaxed && buy(p.id)}
-                  disabled={isMaxed}
-                  style={isMaxed ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
-                >
-                  {i === 1 && <span className="pack-badge">Best value</span>}
-                  <span className="pack-price">{fmt(p.priceLuna)}</span>
-                  <span className="pack-unit">NIM</span>
-                  <span className="pack-credits">{p.credits} answers</span>
-                </button>
-              ))}
+              {packs.map((p, i) => {
+                const disabled = isPackDisabled(p.credits)
+                return (
+                  <button
+                    key={p.id}
+                    className={`pack${i === 1 && !disabled ? ' pack-best' : ''}`}
+                    onClick={() => !disabled && buy(p.id)}
+                    disabled={disabled}
+                    style={disabled ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                  >
+                    {i === 1 && !disabled && <span className="pack-badge">Best value</span>}
+                    {disabled && (
+                      <span className="pack-badge" style={{ background: '#333', color: '#aaa', borderColor: '#444' }}>
+                        {label('exceedsLimit')}
+                      </span>
+                    )}
+                    <span className="pack-price">{fmt(p.priceLuna)}</span>
+                    <span className="pack-unit">NIM</span>
+                    <span className="pack-credits">{p.credits} answers</span>
+                  </button>
+                )
+              })}
             </div>
             <div className="sheet-note">
               {label('payWithNimiq')} · feeless · instant

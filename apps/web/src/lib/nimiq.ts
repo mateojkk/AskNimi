@@ -78,3 +78,18 @@ export function payLanguage(): string {
     || navigator.language.split('-')[0]
     || 'en'
 }
+
+/**
+ * Detect whether the user's Nimiq Pay wallet is currently on Testnet or Mainnet.
+ * Testnet block height is currently ~10.5M; Mainnet is ~60.7M.
+ */
+export async function detectNetwork(): Promise<'testnet' | 'mainnet'> {
+  try {
+    const nimiq = await getNimiq()
+    const blockNumber = await nimiq.getBlockNumber()
+    return (typeof blockNumber === 'number' && blockNumber > 30_000_000) ? 'mainnet' : 'testnet'
+  }
+  catch {
+    return 'testnet'
+  }
+}

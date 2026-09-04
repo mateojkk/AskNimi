@@ -59,16 +59,17 @@ app.post('/api/session', async (c) => {
 // ── checkout: create a payment session ─────────────────────────────────
 
 app.post('/api/checkout', async (c) => {
-  const { deviceId, packId } = await c.req.json<{ deviceId?: string, packId?: string }>()
+  const { deviceId, packId, network } = await c.req.json<{ deviceId?: string, packId?: string, network?: string }>()
   const pack = packById(packId ?? '')
   if (!deviceId || !pack) return c.json({ error: 'deviceId and valid packId required' }, 400)
   if (!config.merchantAddress) return c.json({ error: 'Payments not configured yet.' }, 503)
 
   const db = await readDb()
   const rec = getOrCreateDevice(db, deviceId)
-  if (rec.credits >= config.testnetCreditCap) {
+  // Testnet cap only applies when testing with free faucet NIM
+  if (network !== 'mainnet' && rec.credits + pack.credits > config.testnetCreditCap) {
     return c.json({
-      error: `You already have ${rec.credits} answers (maximum limit: ${config.testnetCreditCap}). Use some answers before topping up again.`
+      error: `This pack would exceed the maximum testnet limit of ${config.testnetCreditCap} answers (you currently have ${rec.credits}). Use your answers before topping up.`
     }, 400)
   }
 
@@ -149,7 +150,12 @@ async function handleConfirm(
   db.usedTxHashes[txHash] = true
 
   const rec = getOrCreateDevice(db, payment.deviceId)
-  rec.credits += payment.credits
+  if (result.network === 'testnet') {
+    rec.credits = Math.min(rec.credits + payment.credits, config.testnetCreditCap)
+  }
+  else {
+    rec.credits += payment.credits
+  }
   await writeDb(db)
 
   return c.json({ ok: true, credits: rec.credits, network: result.network })
