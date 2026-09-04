@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "AskNim — your pocket AI inside Nimiq Pay. Pennies per question, paid in feeless NIM.",
+  "license": "MIT",
   "workspaces": [
     "apps/*"
   ],
