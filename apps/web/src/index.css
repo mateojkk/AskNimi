@@ -202,6 +202,26 @@ input, button { font-family: inherit; }
   border: 1px solid var(--line-strong);
 }
 
+.demo-toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #0a0a0a;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: popIn 0.25s ease-out;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 /* ── welcome ── */
 .welcome {
   margin: auto 0; text-align: center; padding: 16px 6px;

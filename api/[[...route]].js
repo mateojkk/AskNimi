@@ -4703,6 +4703,22 @@ app.post("/api/session", async (c) => {
     aiConfigured: Boolean(config.groqApiKey)
   });
 });
+app.all("/api/reset", async (c) => {
+  const db = await readDb();
+  const body = await c.req.json().catch(() => ({}));
+  const deviceId = body?.deviceId || c.req.query("deviceId");
+  if (deviceId && db.devices[deviceId]) {
+    db.devices[deviceId].freeUsed = 0;
+    db.devices[deviceId].credits = 0;
+  } else {
+    for (const d of Object.keys(db.devices)) {
+      db.devices[d].freeUsed = 0;
+      db.devices[d].credits = 0;
+    }
+  }
+  await writeDb(db);
+  return c.json({ ok: true, freeRemaining: config.freeMessages, credits: 0 });
+});
 app.post("/api/checkout", async (c) => {
   const { deviceId, packId } = await c.req.json();
   const pack = packById(packId ?? "");
