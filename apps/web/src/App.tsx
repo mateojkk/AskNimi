@@ -24,35 +24,7 @@ export default function App() {
   const [showPaywall, setShowPaywall] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [address, setAddress] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const resetClicks = useRef<number[]>([])
-
-  const handleBrandClick = useCallback(async () => {
-    const now = Date.now()
-    resetClicks.current = [...resetClicks.current.filter(t => now - t < 1500), now]
-    if (resetClicks.current.length >= 3) {
-      resetClicks.current = []
-      if (!deviceId) return
-      try {
-        const res = await fetch('/api/reset', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ deviceId }),
-        }).then(r => r.json()) as { ok: boolean, freeRemaining: number, credits: number }
-        if (res.ok) {
-          setSession(s => s && { ...s, freeRemaining: res.freeRemaining, credits: res.credits })
-          setMessages([])
-          setError(null)
-          setToast('Demo reset: 3 free answers restored!')
-          setTimeout(() => setToast(null), 3000)
-        }
-      }
-      catch (err) {
-        console.error(err)
-      }
-    }
-  }, [deviceId])
 
   useEffect(() => {
     ;(async () => {
@@ -75,13 +47,6 @@ export default function App() {
         id = getLocalDeviceId()
       }
       setDeviceId(id)
-      if (window.location.search.includes('reset')) {
-        await fetch('/api/reset', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ deviceId: id }),
-        }).catch(() => {})
-      }
       setSession(await startSession(id))
     })().catch((err) => {
       console.error('[asknim] init failed', err)
@@ -177,7 +142,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <div className="brand" onClick={handleBrandClick} style={{ cursor: 'pointer' }} title="Tap 3 times to reset demo">
+        <div className="brand">
           <img src="/logo.png" alt="AskNim" className="brand-logo" />
           <div>
             <div className="brand-name">ask<em>nim</em></div>
@@ -211,8 +176,6 @@ export default function App() {
           {address && <span className="chip chip-addr">{address.slice(0, 6)}…{address.slice(-4)}</span>}
         </div>
       </header>
-
-      {toast && <div className="demo-toast">{toast}</div>}
 
       {insidePay === false && <div className="demo-banner">{t(lang, 'demoMode')}</div>}
 
